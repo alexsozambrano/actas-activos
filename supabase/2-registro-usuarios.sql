@@ -35,10 +35,19 @@ drop trigger if exists al_crear_usuario on auth.users;
 create trigger al_crear_usuario after insert on auth.users
   for each row execute function public.crear_perfil();
 
--- Usuarios existentes: aprobados y administradores
-insert into public.perfiles (id, email, nombre, rol, estado)
-select id, email, coalesce(raw_user_meta_data->>'nombre', ''), 'admin', 'aprobado' from auth.users
-on conflict (id) do update set rol = 'admin', estado = 'aprobado';
+-- Primera vez: los usuarios que ya existen quedan aprobados y como administradores.
+-- Si ya hay un administrador, no se toca a nadie (es seguro volver a ejecutar este archivo).
+do $$ begin
+  if not exists (select 1 from public.perfiles where rol = 'admin' and estado = 'aprobado') then
+    insert into public.perfiles (id, email, nombre, rol, estado)
+    select id, email, coalesce(raw_user_meta_data->>'nombre', ''), 'admin', 'aprobado' from auth.users
+    on conflict (id) do update set rol = 'admin', estado = 'aprobado';
+  else
+    insert into public.perfiles (id, email, nombre)
+    select id, email, coalesce(raw_user_meta_data->>'nombre', '') from auth.users
+    on conflict (id) do nothing;
+  end if;
+end $$;
 
 -- Permisos de perfiles: cada quien ve el suyo; el administrador ve y cambia todos
 alter table public.perfiles enable row level security;
