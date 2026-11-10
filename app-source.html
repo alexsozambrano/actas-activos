@@ -181,6 +181,12 @@ button,input,select,textarea{font:inherit;color:inherit}
 .sigimg img{max-height:100%;max-width:100%}
 .dhead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
 .dhead h2{font-size:22px}
+.pill.porfirmar{background:var(--accent-soft);color:var(--accent)}.pill.firmada{background:var(--ok-soft);color:var(--ok)}
+.editban{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--accent);background:var(--accent-soft);border-radius:8px;padding:10px 12px}
+.types.locked .type{opacity:.55;pointer-events:none}
+.sigimg .pend{color:#6b7785;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.conf{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.4}.conf input{width:20px;height:20px;margin-top:1px;flex:none;accent-color:var(--ok)}
+.okline{color:var(--ok);font-size:13px;font-weight:600}
 .confirm{border:1px solid var(--danger);background:var(--danger-soft);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
 
 /* Modales y avisos */
@@ -221,6 +227,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 
   <!-- ============ NUEVA ACTA ============ -->
   <main id="vNueva" class="stack">
+    <div class="editban" id="editBan" hidden><span>Estás corrigiendo el acta <b class="mono" id="editFolio"></b>. Los cambios reemplazan la versión guardada.</span><button class="btn sm" id="btnCancelCorr">Cancelar corrección</button></div>
     <section class="sec">
       <div class="sec-h"><h2><span class="step">1/4</span> Datos del acta</h2><span class="hint">Folio <b class="mono" id="folioPrev">—</b></span></div>
       <div class="types" role="radiogroup" aria-label="Tipo de acta">
@@ -285,9 +292,10 @@ button,input,select,textarea{font:inherit;color:inherit}
           <div class="f"><label for="rCargo">Cargo</label><input id="rCargo" autocomplete="off"></div>
           <div class="f"><label for="rArea">Área / dependencia</label><input id="rArea" autocomplete="off"></div>
           <div class="f"><label for="rContacto">Correo o teléfono</label><input id="rContacto" autocomplete="off"></div>
+          <div class="f" id="fRCorreo" hidden><label for="rCorreo">Correo de su cuenta en la app</label><input id="rCorreo" type="email" inputmode="email" autocomplete="off" list="dlUsuarios" placeholder="Para que firme desde su celular"><span class="hint">Si lo escribes, puedes guardar el acta sin su firma: le aparecerá en su cuenta para firmar como conforme.</span></div>
         </fieldset>
       </div>
-      <datalist id="dlPersonas"></datalist>
+      <datalist id="dlPersonas"></datalist><datalist id="dlUsuarios"></datalist>
       <div class="f"><label for="obs">Observaciones generales</label><textarea id="obs" placeholder="Condiciones, accesorios, compromisos de uso…"></textarea></div>
     </section>
 
@@ -467,6 +475,23 @@ const D = {
   "pendiente": "pending", "aprobado": "approved", "rechazado": "rejected", "admin": "admin", "Tú": "You", "Sin nombre": "No name",
   "Aún no hay usuarios registrados.": "No registered users yet.", "Usuario actualizado.": "User updated.",
   "Solo el administrador puede cambiar los ajustes.": "Only the administrator can change the settings.",
+  "Estás corrigiendo el acta": "You are correcting record", "Los cambios reemplazan la versión guardada.": "Changes replace the saved version.", "Cancelar corrección": "Cancel correction",
+  "Correo de su cuenta en la app": "Email of their app account", "Para que firme desde su celular": "So they can sign from their phone",
+  "Si lo escribes, puedes guardar el acta sin su firma: le aparecerá en su cuenta para firmar como conforme.": "If you fill it in, you can save the record without their signature: it will appear in their account to sign as received in good order.",
+  "Corregir acta": "Correct record", "Guardar cambios": "Save changes", "Pendiente de firma": "Pending signature", "Por firmar": "To sign", "Firmada": "Signed",
+  "Firmar como conforme": "Sign as received", "Firmando…": "Signing…", "Tu firma": "Your signature",
+  "Declaro que recibí los activos descritos en esta acta, en el estado indicado, y estoy conforme.": "I declare that I received the assets described in this record, in the stated condition, and I agree.",
+  "Revisa los activos y firma para confirmar que los recibiste conforme.": "Review the assets and sign to confirm you received them in good order.",
+  "Firma en el recuadro antes de enviar.": "Sign in the box before sending.", "Marca la casilla de conformidad.": "Tick the agreement box.",
+  "Acta firmada como conforme.": "Record signed as received.", "Mis actas": "My records",
+  "Aún no hay actas a tu nombre": "There are no records in your name yet",
+  "Cuando el administrador registre una entrega para ti, aparecerá aquí para que la revises y la firmes.": "When the administrator records a handover for you, it will appear here for you to review and sign.",
+  "Falta la firma de quien entrega.": "The signature of the person handing over is missing.",
+  "Falta la firma de quien recibe. Fírmala aquí o escribe el correo de su cuenta para que firme desde su celular.": "The recipient's signature is missing. Sign here or enter their account email so they can sign from their phone.",
+  "Solo el administrador puede crear o corregir actas.": "Only the administrator can create or correct records.",
+  "Esta acta ya fue firmada por quien recibe. Como cambiaste los activos, su firma se quitó y tendrá que volver a firmar.": "This record had already been signed by the recipient. Because you changed the assets, their signature was removed and they will need to sign again.",
+  "Recibido conforme": "Received in good order", "Esperando la firma de quien recibe": "Waiting for the recipient's signature",
+  "Correo no válido.": "Invalid email.",
   "registro": "entry", "registros": "entries", "unidad": "unit", "unidades": "units", "Registrada": "Recorded",
 };
 const PAT = [
@@ -488,6 +513,8 @@ const PAT = [
   [/^No se pudieron guardar los ajustes: (.*)$/s, "Could not save the settings: $1"],
   [/^Nueva (\S+) con (\d+) activos de (.+)\. Revisa y firma\.$/, (m, t, n, f) => `New ${(D[t[0].toUpperCase() + t.slice(1)] || t).toLowerCase()} with ${n} assets from ${f}. Review and sign.`],
   [/^¿Eliminar el acta (.+)\?$/, "Delete record $1?"],
+  [/^Acta (.+) corregida\.$/, "Record $1 corrected."], [/^Acta (.+) guardada\. Quedó pendiente de la firma de (.+)\.$/s, "Record $1 saved. Waiting for $2 to sign."],
+  [/^No se pudo firmar: (.*)$/s, "Could not sign: $1"], [/^Recibido conforme · (.*)$/s, "Received in good order · $1"], [/^Esperando la firma de quien recibe · (.*)$/s, "Waiting for the recipient's signature · $1"],
   [/^Activos \((\d+)\)$/, "Assets ($1)"],
 ];
 let LANG = (() => { const s = lsGet("actas-lang", null); if (s === "es" || s === "en") return s; return (navigator.language || "es").toLowerCase().startsWith("en") ? "en" : "es"; })();
@@ -584,7 +611,7 @@ const store = {
     const c = window.ACTAS_SUPABASE; this.mode = "supa";
     this.sb = window.supabase.createClient(c.url, c.key, { auth: { persistSession: true, autoRefreshToken: true } });
     this.sb.auth.onAuthStateChange((ev, session) => {
-      if (ev === "SIGNED_OUT") { this.user = null; this.perfil = null; this.esAdmin = false; this.usuarios = []; this.actas = []; $("#tabUsers").hidden = true; try { if (this.chanP) this.sb.removeChannel(this.chanP); } catch {} this.chanP = null; hidePending(); if (view === "usuarios") setView("nueva"); this.emit(); this.stopRealtime(); showLogin(); }
+      if (ev === "SIGNED_OUT") { this.user = null; this.perfil = null; this.esAdmin = false; aplicarRol(); this.usuarios = []; this.actas = []; $("#tabUsers").hidden = true; try { if (this.chanP) this.sb.removeChannel(this.chanP); } catch {} this.chanP = null; hidePending(); if (view === "usuarios") setView("nueva"); this.emit(); this.stopRealtime(); showLogin(); }
     });
     let session = null;
     try { session = (await this.sb.auth.getSession()).data.session; } catch {}
@@ -605,6 +632,7 @@ const store = {
     if (this.perfil?.nombre) $("#sesionTxt").textContent = "Sesión: " + this.perfil.nombre + " · " + (user.email || "");
     this.esAdmin = this.perfil?.rol === "admin";
     $("#tabUsers").hidden = !this.esAdmin;
+    aplicarRol();
     if (this.esAdmin) this.loadUsers();
     await this.supaLoad();
     this.stopRealtime();
@@ -636,6 +664,7 @@ const store = {
     const { data, error } = await this.sb.from("perfiles").select("*").order("created_at", { ascending: false });
     if (error) return;
     this.usuarios = data || [];
+    $("#dlUsuarios").innerHTML = this.usuarios.filter(u => u.estado === "aprobado" && u.email).map(u => `<option value="${esc(u.email)}">${esc(u.nombre || "")}</option>`).join("");
     const n = this.usuarios.filter(u => u.estado === "pendiente").length;
     $("#usersCount").textContent = n ? n : "";
     if (view === "usuarios") renderUsers();
@@ -661,6 +690,11 @@ const store = {
     if (this.mode === "db") { await this.db.collection("actas").doc(acta.id).set(acta); }
     else { this.actas = this.actas.filter(a => a.id !== acta.id).concat(acta); lsSet("actas-local", this.actas); this.emit(); }
   },
+  async firmarConforme(id, firma) {
+    const { data, error } = await this.sb.rpc("firmar_acta", { p_id: id, p_firma: firma });
+    if (error) throw error;
+    if (data) { this.actas = this.actas.map(a => a.id === id ? { ...data, id } : a); this.emit(); }
+  },
   async remove(id) {
     if (this.mode === "supa") { const { error } = await this.sb.from("actas").delete().eq("id", id); if (error) throw error; this.actas = this.actas.filter(a => a.id !== id); this.emit(); return; }
     if (this.mode === "db") { await this.db.collection("actas").doc(id).delete(); }
@@ -673,6 +707,17 @@ const store = {
     this.emit();
   },
 };
+/* Roles: en la versión con base de datos propia, solo el administrador crea, corrige y borra; quien recibe solo firma */
+const esReceptor = () => store.mode === "supa" && !!store.perfil && !store.esAdmin;
+const puedeEditar = () => !esReceptor();
+function aplicarRol() {
+  const rec = esReceptor();
+  $("#tabNueva").hidden = rec;
+  $("#fRCorreo").hidden = !(store.mode === "supa" && store.perfil);
+  if (rec && (view === "nueva")) setView("historial");
+  else if (view === "nueva") $("#bar").hidden = false;
+  if (rec) $("#bar").hidden = true;
+}
 function setSync(txt, on) { $("#syncTxt").textContent = txt; $("#syncDot").classList.toggle("on", !!on); }
 
 /* ---------------- Firmas ---------------- */
@@ -712,7 +757,8 @@ class Firma {
 let assets = []; let editIdx = -1;
 const padE = new Firma($("#padE"), $("#phE"));
 const padR = new Firma($("#padR"), $("#phR"));
-const FIELDS = ["fecha", "lugar", "origen", "destino", "eNombre", "eDoc", "eCargo", "eArea", "eContacto", "rNombre", "rDoc", "rCargo", "rArea", "rContacto", "obs"];
+const FIELDS = ["fecha", "lugar", "origen", "destino", "eNombre", "eDoc", "eCargo", "eArea", "eContacto", "rNombre", "rDoc", "rCargo", "rArea", "rContacto", "rCorreo", "obs"];
+let editando = null; // acta que se está corrigiendo
 const tipoSel = () => ($("input[name=tipo]:checked") || {}).value || "entrega";
 
 function nextFolio(tipo, fechaISO) {
@@ -722,7 +768,7 @@ function nextFolio(tipo, fechaISO) {
 }
 
 function saveDraft() {
-  const d = { tipo: tipoSel(), assets, firmaE: padE.strokes, firmaR: padR.strokes };
+  const d = { tipo: tipoSel(), assets, firmaE: padE.strokes, firmaR: padR.strokes, editId: editando?.id || null };
   FIELDS.forEach(f => d[f] = $("#" + f).value);
   lsSet("actas-borrador", d);
 }
@@ -732,22 +778,39 @@ function loadDraft(d) {
   FIELDS.forEach(f => { if (d[f] != null) $("#" + f).value = d[f]; });
   assets = Array.isArray(d.assets) ? d.assets : [];
   padE.set(d.firmaE); padR.set(d.firmaR);
+  editando = d.editId ? { id: d.editId, pendiente: true } : null;
+}
+function setEditando(a) {
+  editando = a; $("#editBan").hidden = !a; $(".types").classList.toggle("locked", !!a);
+  $$("input[name=tipo]").forEach(r => r.disabled = !!a);
+  if (a) $("#editFolio").textContent = a.folio;
+  $("#btnGuardar").textContent = a ? "Guardar cambios" : "Guardar acta";
+}
+function corregirActa(a) {
+  resetForm();
+  $("#tipo-" + a.tipo).checked = true;
+  $("#fecha").value = localISO(new Date(a.fecha)); $("#lugar").value = a.lugar || ""; $("#origen").value = a.origen || ""; $("#destino").value = a.destino || ""; $("#obs").value = a.observaciones || "";
+  const map = { Nombre: "nombre", Doc: "documento", Cargo: "cargo", Area: "area", Contacto: "contacto" };
+  Object.entries(map).forEach(([k, f]) => { $("#e" + k).value = a.entrega?.[f] || ""; $("#r" + k).value = a.recibe?.[f] || ""; });
+  $("#rCorreo").value = a.recibe?.correo || "";
+  assets = (a.activos || []).map(x => ({ ...x }));
+  setEditando(a); saveDraft(); setView("nueva"); refreshForm();
 }
 function resetForm() {
   FIELDS.forEach(f => $("#" + f).value = "");
   $("#fecha").value = localISO();
-  assets = []; editIdx = -1; clearAssetInputs(); padE.set([]); padR.set([]);
+  assets = []; editIdx = -1; clearAssetInputs(); padE.set([]); padR.set([]); setEditando(null);
   $("#tipo-entrega").checked = true; saveDraft(); refreshForm();
 }
 
 function refreshForm() {
   const tipo = tipoSel();
-  $("#folioPrev").textContent = nextFolio(tipo, $("#fecha").value);
+  $("#folioPrev").textContent = editando?.folio || nextFolio(tipo, $("#fecha").value);
   $("#lblOrigen").textContent = tipo === "traslado" ? "Ubicación origen" : "Ubicación / área origen";
   $("#destino").closest(".f").classList.toggle("req", tipo === "traslado");
   $("#barTipo").textContent = TIPOS[tipo].nombre;
   const n = assets.length; $("#nAct").textContent = n; $("#barN").textContent = n === 1 ? "1 activo" : n + " activos";
-  const nf = (padE.empty ? 0 : 1) + (padR.empty ? 0 : 1); $("#barF").textContent = nf + "/2 firmas";
+  const nf = (padE.empty && !editando?.firmaEntrega ? 0 : 1) + (padR.empty && !editando?.firmaRecibe ? 0 : 1); $("#barF").textContent = nf + "/2 firmas";
   $("#snE").textContent = [$("#eNombre").value, $("#eDoc").value && "Doc. " + $("#eDoc").value].filter(Boolean).join(" · ") || "—";
   $("#snR").textContent = [$("#rNombre").value, $("#rDoc").value && "Doc. " + $("#rDoc").value].filter(Boolean).join(" · ") || "—";
   renderAssets();
@@ -906,32 +969,51 @@ async function guardar() {
   req.forEach(id => { if (!v(id)) { faltan.push(id); $("#" + id).closest(".f").classList.add("err"); } });
   if (faltan.length) { toast("Completa los campos obligatorios marcados en rojo.", true); $("#" + faltan[0]).focus(); return; }
   if (!assets.length) { toast("Agrega al menos un activo al acta.", true); $("#aCodigo").focus(); return; }
-  if (padE.empty || padR.empty) { toast("Faltan firmas: " + [padE.empty && "quien entrega", padR.empty && "quien recibe"].filter(Boolean).join(" y ") + ".", true); $("#padE").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+  if (!puedeEditar()) { toast("Solo el administrador puede crear o corregir actas.", true); return; }
+  const ed = editando && editando.folio ? editando : null;
+  const correo = store.mode === "supa" && store.perfil ? v("rCorreo").toLowerCase() : "";
+  if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { $("#rCorreo").closest(".f").classList.add("err"); toast("Correo no válido.", true); $("#rCorreo").focus(); return; }
+  const cambiaronActivos = ed && JSON.stringify(ed.activos || []) !== JSON.stringify(assets);
+  const firmaE = padE.empty ? (ed?.firmaEntrega || "") : padE.toPNG();
+  let firmaR = padR.empty ? (ed?.firmaRecibe || "") : padR.toPNG(), avisoFirma = false;
+  if (ed && padR.empty && ed.firmaRecibe && cambiaronActivos) { firmaR = ""; avisoFirma = true; }
+  if (!firmaE) { toast("Falta la firma de quien entrega.", true); $("#padE").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+  if (!firmaR && !correo) {
+    if (store.mode === "supa" && store.perfil) { toast("Falta la firma de quien recibe. Fírmala aquí o escribe el correo de su cuenta para que firme desde su celular.", true); $("#padR").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+    toast("Faltan firmas: quien recibe.", true); $("#padR").scrollIntoView({ behavior: "smooth", block: "center" }); return;
+  }
   const fechaISO = new Date(v("fecha")).toISOString();
+  const nuevaFirmaR = !padR.empty;
   const acta = {
-    id: uid(), folio: nextFolio(tipo, v("fecha")), tipo, fecha: fechaISO,
+    ...(ed ? { creadoEn: ed.creadoEn, registradoPor: ed.registradoPor, correcciones: ed.correcciones || [] } : {}),
+    id: ed ? ed.id : uid(), folio: ed ? ed.folio : nextFolio(tipo, v("fecha")), tipo, fecha: fechaISO,
     lugar: v("lugar"), origen: v("origen"), destino: v("destino"), observaciones: v("obs"),
     entrega: { nombre: v("eNombre"), documento: v("eDoc"), cargo: v("eCargo"), area: v("eArea"), contacto: v("eContacto") },
-    recibe: { nombre: v("rNombre"), documento: v("rDoc"), cargo: v("rCargo"), area: v("rArea"), contacto: v("rContacto") },
+    recibe: { nombre: v("rNombre"), documento: v("rDoc"), cargo: v("rCargo"), area: v("rArea"), contacto: v("rContacto"), ...(correo ? { correo } : {}) },
     activos: assets.map(a => ({ ...a })),
-    firmaEntrega: padE.toPNG(), firmaRecibe: padR.toPNG(),
-    creadoEn: new Date().toISOString(),
-    registradoPor: store.perfil?.nombre || store.user?.email || "",
+    firmaEntrega: firmaE, firmaRecibe: firmaR,
+    estadoFirma: firmaR ? "firmada" : "pendiente",
+    ...(firmaR ? (nuevaFirmaR || !ed ? { conforme: true, firmadoRecibeEn: new Date().toISOString(), firmadoRecibeEnSitio: true } : { conforme: ed.conforme ?? true, firmadoRecibeEn: ed.firmadoRecibeEn || ed.creadoEn, ...(ed.firmadoRecibePor ? { firmadoRecibePor: ed.firmadoRecibePor } : {}), ...(ed.firmadoRecibeEnSitio ? { firmadoRecibeEnSitio: true } : {}) }) : {}),
   };
+  if (!ed) { acta.creadoEn = new Date().toISOString(); acta.registradoPor = store.perfil?.nombre || store.user?.email || ""; }
+  else acta.correcciones = acta.correcciones.concat({ en: new Date().toISOString(), por: store.perfil?.nombre || store.user?.email || "" });
   const btn = $("#btnGuardar"); btn.disabled = true; btn.textContent = "Guardando…";
   try {
     try { await store.save(acta); }
     catch (e) {
-      if (store.mode !== "supa" || e?.code !== "23505") throw e;
+      if (ed || store.mode !== "supa" || e?.code !== "23505") throw e;
       await store.supaLoad(); acta.folio = nextFolio(tipo, v("fecha"));
       await store.save(acta); toast("Ese folio ya existía; se asignó el siguiente número.");
     }
     if (store.mode === "db" && !store.actas.some(a => a.id === acta.id)) store.actas.push(acta);
-    resetForm(); toast(`Acta ${acta.folio} guardada.`);
+    resetForm();
+    if (ed) { toast(`Acta ${acta.folio} corregida.`); if (avisoFirma) setTimeout(() => toast("Esta acta ya fue firmada por quien recibe. Como cambiaste los activos, su firma se quitó y tendrá que volver a firmar.", true), 400); }
+    else if (!firmaR) toast(`Acta ${acta.folio} guardada. Quedó pendiente de la firma de ${acta.recibe.nombre}.`);
+    else toast(`Acta ${acta.folio} guardada.`);
     showDetail(acta.id);
   } catch (e) {
     toast("No se pudo guardar el acta: " + (e && (e.message || e.code) || e) + ". Tus datos siguen en el formulario.", true);
-  } finally { btn.disabled = false; btn.textContent = "Guardar acta"; }
+  } finally { btn.disabled = false; btn.textContent = editando ? "Guardar cambios" : "Guardar acta"; }
 }
 
 /* ---------------- PDF ---------------- */
@@ -1051,15 +1133,17 @@ function buildPDF(a, firmas) {
 
   // Firmas
   if (y + 52 > H - 20) y = newPage();
-  const sw = (W - 2 * M - 5) / 2, sh = 46;
+  const sw = (W - 2 * M - 5) / 2, sh = 50;
   [[firmas.e, a.entrega, X("Firma de quien entrega"), T.BLUE], [firmas.r, a.recibe, X("Firma de quien recibe"), T.GREEN]].forEach(([img, o, rol, c], i) => {
     const x = M + i * (sw + 5); card(x, y, sw, sh);
     label(rol, x + 5, y + 6.5, c);
+    if (!img) { font("bold", 8); color(T.MUT); doc.text(X("Pendiente de firma").toUpperCase(), x + sw / 2, y + 21, { align: "center" }); }
     if (img) { try { const pr = doc.getImageProperties(img); let ih = 20, iw = ih * pr.width / pr.height; if (iw > sw - 12) { iw = sw - 12; ih = iw * pr.height / pr.width; } doc.addImage(img, "PNG", x + (sw - iw) / 2, y + 29 - ih, iw, ih); } catch {} }
     stroke(T.LINE); doc.setLineWidth(.3); doc.line(x + 5, y + 31, x + sw - 5, y + 31);
     font("bold", 9.5); color(T.TXT); doc.text(doc.splitTextToSize(o?.nombre || "—", sw - 10)[0], x + 5, y + 36.5);
     font("normal", 7.8); color(T.MUT); const l2 = [o?.documento && X("Doc. ") + o.documento, o?.cargo].filter(Boolean).join(" · ");
     if (l2) doc.text(doc.splitTextToSize(l2, sw - 10)[0], x + 5, y + 41);
+    if (i === 1 && img && a.conforme !== false && a.firmadoRecibeEn) { font("bold", 7.8); color(T.GREEN); doc.text(doc.splitTextToSize(X("Recibido conforme · " + fmtFecha(a.firmadoRecibeEn)), sw - 10)[0], x + 5, y + 45.5); }
   });
   y += sh + 6;
   if (cfg.pie) { font("normal", 7.8); const t = doc.splitTextToSize(cfg.pie, W - 2 * M); if (y + t.length * 3.6 > H - 16) y = newPage(); color(T.MUT); doc.text(t, M, y + 2); }
@@ -1110,6 +1194,10 @@ function renderHist() {
     return hay.includes(q);
   }).sort((x, y) => (y.fecha || "").localeCompare(x.fecha || "") || (y.folio || "").localeCompare(x.folio || ""));
   const el = $("#histList");
+  if (!store.actas.length && esReceptor()) {
+    el.innerHTML = `<div class="sec zero"><h3>Aún no hay actas a tu nombre</h3><p class="hint">Cuando el administrador registre una entrega para ti, aparecerá aquí para que la revises y la firmes.</p></div>`;
+    return;
+  }
   if (!store.actas.length) {
     el.innerHTML = `<div class="sec zero"><h3>Todavía no hay actas guardadas</h3><p class="hint">Cuando guardes un acta firmada aparecerá aquí, con su folio, las personas y los activos. Podrás buscarla por código de activo y descargar su PDF.</p><button class="btn primary" data-go="nueva">Crear la primera acta</button></div>`;
     return;
@@ -1120,25 +1208,30 @@ function renderHist() {
     return `<button class="item t-${esc(a.tipo)}" data-open="${esc(a.id)}">
       <span class="folio">${esc(a.folio)}</span><span class="when">${esc(fmtFecha(a.fecha))}</span>
       <span class="who">${esc(a.entrega?.nombre || "—")} → ${esc(a.recibe?.nombre || "—")}</span>
-      <span class="foot"><span class="chip">${esc(TIPOS[a.tipo]?.nombre || a.tipo)}</span><span>${n} ${n === 1 ? "activo" : "activos"}</span>${a.destino ? `<span>· ${esc(a.destino)}</span>` : ""}</span>
+      <span class="foot">${!a.firmaRecibe ? `<span class="pill porfirmar">Pendiente de firma</span>` : ""}<span class="chip">${esc(TIPOS[a.tipo]?.nombre || a.tipo)}</span><span>${n} ${n === 1 ? "activo" : "activos"}</span>${a.destino ? `<span>· ${esc(a.destino)}</span>` : ""}</span>
     </button>`;
   }).join("");
 }
 
 /* ---------------- Detalle ---------------- */
-let detailId = null;
+let detailId = null, padC = null;
 function showDetail(id) { detailId = id; setView("detalle"); }
 function renderDetail() {
   const a = store.actas.find(x => x.id === detailId); const el = $("#vDet");
+  const prev = padC && padC.actaId === detailId ? { strokes: padC.strokes, ok: $("#chkConf")?.checked } : null; padC = null;
+  const rec = esReceptor(), edit = puedeEditar();
+  const miCorreo = (store.user?.email || "").toLowerCase();
+  const puedoFirmar = rec && a && !a.firmaRecibe && (a.recibe?.correo || "").toLowerCase() === miCorreo;
   if (!a) { el.innerHTML = `<div class="empty">Esta acta ya no existe.</div><div><button class="btn" data-go="historial">Volver al historial</button></div>`; return; }
   const per = (o, rol) => `<div class="sec" style="gap:8px"><span class="lbl">${rol}</span><b style="font-size:16px">${esc(o?.nombre || "—")}</b>
     <span class="hint">${[o?.documento && "Doc. " + o.documento, o?.cargo, o?.area, o?.contacto].filter(Boolean).map(esc).join(" · ") || "Sin más datos"}</span></div>`;
   el.innerHTML = `
     <div><button class="btn sm ghost" data-go="historial">← Historial</button></div>
+    ${puedoFirmar ? `<div class="editban"><span>Revisa los activos y firma para confirmar que los recibiste conforme.</span></div>` : ""}
     <section class="sec t-${esc(a.tipo)}" style="box-shadow:inset 4px 0 0 var(--tc)">
       <div class="dhead">
         <div class="stack" style="gap:4px"><span class="chip">${esc(TIPOS[a.tipo]?.nombre || a.tipo)}</span><h2 class="mono">${esc(a.folio)}</h2></div>
-        <div class="row"><button class="btn primary" id="btnPdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Descargar PDF</button></div>
+        <div class="row">${edit ? `<button class="btn" id="btnCorr">Corregir acta</button>` : ""}<button class="btn primary" id="btnPdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Descargar PDF</button></div>
       </div>
       <div class="kv">
         <div><span>Fecha</span><b>${esc(fmtFecha(a.fecha))}</b></div>
@@ -1157,10 +1250,15 @@ function renderDetail() {
     <section class="sec"><h2 style="font-size:16px">Firmas</h2>
       <div class="sigs">
         <div class="sig"><div class="sigimg">${a.firmaEntrega ? `<img src="${esc(a.firmaEntrega)}" alt="Firma de ${esc(a.entrega?.nombre)}">` : ""}</div><span class="sig-name">Entrega: ${esc(a.entrega?.nombre || "—")}</span></div>
-        <div class="sig"><div class="sigimg">${a.firmaRecibe ? `<img src="${esc(a.firmaRecibe)}" alt="Firma de ${esc(a.recibe?.nombre)}">` : ""}</div><span class="sig-name">Recibe: ${esc(a.recibe?.nombre || "—")}</span></div>
+        <div class="sig"><div class="sigimg">${a.firmaRecibe ? `<img src="${esc(a.firmaRecibe)}" alt="Firma de ${esc(a.recibe?.nombre)}">` : `<span class="pend">Pendiente de firma</span>`}</div><span class="sig-name">Recibe: ${esc(a.recibe?.nombre || "—")}</span>${a.firmaRecibe && a.firmadoRecibeEn ? `<span class="okline">Recibido conforme · ${esc(fmtFecha(a.firmadoRecibeEn))}</span>` : ""}${!a.firmaRecibe && a.recibe?.correo ? `<span class="hint">Esperando la firma de quien recibe · ${esc(a.recibe.correo)}</span>` : ""}</div>
       </div>
     </section>
-    <section class="sec"><h2 style="font-size:16px">Crear acta a partir de esta</h2>
+    ${puedoFirmar ? `<section class="sec" id="secFirmar"><h2 style="font-size:16px">Firmar como conforme</h2>
+      <div class="sig"><div class="sig-h"><span class="lbl">Tu firma</span><button class="btn sm ghost" id="btnBorrarC">Borrar</button></div><div class="pad"><canvas id="padC"></canvas><div class="base"></div><div class="ph" id="phC">Firme aquí</div></div><div class="sig-name">${esc(a.recibe?.nombre || "")}</div></div>
+      <label class="conf"><input type="checkbox" id="chkConf"><span>Declaro que recibí los activos descritos en esta acta, en el estado indicado, y estoy conforme.</span></label>
+      <div class="row" style="justify-content:flex-end"><button class="btn primary" id="btnFirmarC">Firmar como conforme</button></div>
+    </section>` : ""}
+    ${edit ? `<section class="sec"><h2 style="font-size:16px">Crear acta a partir de esta</h2>
       <p class="hint">Copia los activos y las personas a una nueva acta. En una devolución se invierten quien entrega y quien recibe.</p>
       <div class="row">
         <button class="btn" data-from="devolucion">Devolución</button>
@@ -1169,9 +1267,22 @@ function renderDetail() {
         <button class="btn" data-from="recepcion">Recepción</button>
       </div>
     </section>
-    <div id="delZone"><button class="btn danger sm" id="btnDel">Eliminar acta</button></div>`;
+    <div id="delZone"><button class="btn danger sm" id="btnDel">Eliminar acta</button></div>` : ""}`;
   $("#btnPdf").onclick = e => descargarPDF(a, e.currentTarget);
-  $("#btnDel").onclick = () => {
+  if ($("#btnCorr")) $("#btnCorr").onclick = () => corregirActa(a);
+  if (puedoFirmar) {
+    padC = new Firma($("#padC"), $("#phC")); padC.actaId = a.id;
+    if (prev) { padC.set(prev.strokes); $("#chkConf").checked = !!prev.ok; }
+    $("#btnBorrarC").onclick = () => padC.clear();
+    $("#btnFirmarC").onclick = async e => {
+      if (padC.empty) { toast("Firma en el recuadro antes de enviar.", true); return; }
+      if (!$("#chkConf").checked) { toast("Marca la casilla de conformidad.", true); return; }
+      const b = e.currentTarget; b.disabled = true; b.textContent = "Firmando…";
+      try { const png = padC.toPNG(); padC = null; await store.firmarConforme(a.id, png); toast("Acta firmada como conforme."); renderDetail(); window.scrollTo({ top: 0 }); }
+      catch (x) { toast("No se pudo firmar: " + (x?.message || x), true); b.disabled = false; b.textContent = "Firmar como conforme"; }
+    };
+  }
+  if ($("#btnDel")) $("#btnDel").onclick = () => {
     $("#delZone").innerHTML = `<div class="confirm"><b>¿Eliminar el acta ${esc(a.folio)}?</b><span class="hint" style="color:var(--ink)">Se borrará del historial para todos. Descarga antes el PDF si lo necesitas. Esta acción no se puede deshacer.</span>
       <div class="row"><button class="btn danger solid" id="btnDelOk">Sí, eliminar</button><button class="btn" id="btnDelNo">Cancelar</button></div></div>`;
     $("#btnDelNo").onclick = renderDetail;
@@ -1201,9 +1312,10 @@ function desdeActa(a, tipo) {
 /* ---------------- Vistas ---------------- */
 let view = "nueva";
 function setView(v) {
+  if (v === "nueva" && esReceptor()) v = "historial";
   view = v;
   $("#vNueva").hidden = v !== "nueva"; $("#vHist").hidden = v !== "historial"; $("#vDet").hidden = v !== "detalle"; $("#vUsers").hidden = v !== "usuarios"; $("#bar").hidden = v !== "nueva";
-  $("#tabNueva").setAttribute("aria-selected", v === "nueva"); $("#tabHist").setAttribute("aria-selected", v === "historial" || v === "detalle"); $("#tabUsers").setAttribute("aria-selected", v === "usuarios");
+  $("#tabNueva").setAttribute("aria-selected", v === "nueva"); if (esReceptor()) $("#bar").hidden = true; $("#tabHist").setAttribute("aria-selected", v === "historial" || v === "detalle"); $("#tabUsers").setAttribute("aria-selected", v === "usuarios");
   document.body.style.paddingBottom = v === "nueva" ? "" : "32px";
   if (v === "historial") renderHist(); if (v === "detalle") renderDetail(); if (v === "usuarios") { renderUsers(); store.loadUsers?.(); } if (v === "nueva") requestAnimationFrame(() => { padE.resize(); padR.resize(); });
   window.scrollTo({ top: 0 });
@@ -1252,6 +1364,7 @@ $("#btnSwap").addEventListener("click", () => {
   const s = padE.strokes; padE.set(padR.strokes); padR.set(s); saveDraft(); refreshForm();
 });
 $("#btnGuardar").addEventListener("click", guardar);
+$("#btnCancelCorr").addEventListener("click", () => { resetForm(); toast("Formulario en blanco."); });
 let limpiarOk = false;
 $("#btnLimpiar").addEventListener("click", e => {
   if (!limpiarOk) { limpiarOk = true; e.currentTarget.textContent = "Pulsa otra vez para borrar el formulario"; e.currentTarget.classList.add("danger"); setTimeout(() => { limpiarOk = false; $("#btnLimpiar").textContent = "Empezar de nuevo"; $("#btnLimpiar").classList.remove("danger"); }, 4000); return; }
@@ -1367,10 +1480,14 @@ $$("[data-lang]").forEach(b => b.addEventListener("click", () => setLang(b.datas
 setLang(LANG);
 const draft = lsGet("actas-borrador", null);
 if (draft) loadDraft(draft);
+let _pendEdit = editando?.pendiente ? editando.id : null; editando = null;
 if (!$("#fecha").value) $("#fecha").value = localISO();
 const h = (location.hash || "").slice(1);
 setView(h === "historial" ? "historial" : "nueva");
 refreshForm();
+store.listeners.push(() => {
+  if (_pendEdit && !editando) { const a = store.actas.find(x => x.id === _pendEdit); if (a && puedeEditar()) { _pendEdit = null; setEditando(a); refreshForm(); } }
+});
 store.init();
 })();
 </script>
