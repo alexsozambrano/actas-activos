@@ -188,6 +188,20 @@ button,input,select,textarea{font:inherit;color:inherit}
 .sigimg .pend{color:#6b7785;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
 .conf{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.4}.conf input{width:20px;height:20px;margin-top:1px;flex:none;accent-color:var(--ok)}
 .okline{color:var(--ok);font-size:13px;font-weight:600}
+.brand h1{overflow:hidden;text-overflow:ellipsis}.brand-l > div{min-width:0}
+@media (max-width:520px){.brand > .row{gap:4px!important}.brand .icon-btn{width:32px;height:32px}.seg button{padding:0 7px}}
+#mGuia{z-index:30}
+#mGuia .sheet{max-width:620px}
+.guia details{border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.guia details+details{margin-top:10px}
+.guia summary{cursor:pointer;list-style:none;padding:12px 14px;display:flex;gap:10px;align-items:center;font-weight:700}
+.guia summary::-webkit-details-marker{display:none}
+.guia summary .who{margin-left:auto;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.guia summary::after{content:"+";font-weight:700;color:var(--muted);width:14px;text-align:center}
+.guia details[open] summary::after{content:"–"}
+.guia ol{margin:0;padding:0 14px 6px 36px;display:flex;flex-direction:column;gap:8px;font-size:14px;line-height:1.45}
+.guia ol li::marker{color:var(--accent);font-weight:700}
+.guia .tip{margin:4px 14px 14px;padding:10px 12px;border-radius:8px;background:var(--accent-soft);font-size:13px;line-height:1.4}
 .confirm{border:1px solid var(--danger);background:var(--danger-soft);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
 
 /* Modales y avisos */
@@ -216,6 +230,7 @@ button,input,select,textarea{font:inherit;color:inherit}
           <div class="seg" role="group" aria-label="Idioma"><button data-lang="es" aria-pressed="true" title="Español">ES</button><button data-lang="en" aria-pressed="false" title="English">EN</button></div>
           <button class="btn icon-btn" id="btnTema" aria-label="Modo oscuro" title="Modo oscuro"><svg id="icoLuna" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg id="icoSol" hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
         </span>
+        <button class="btn ghost sm icon-btn" id="btnGuia" aria-label="Guía de uso" title="Guía de uso"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.3 9.2a2.8 2.8 0 0 1 5.4 1c0 1.9-2.7 2.4-2.7 4"/><circle cx="12" cy="17.4" r=".6" fill="currentColor"/></svg></button>
         <button class="btn ghost sm icon-btn" id="btnAjustes" aria-label="Ajustes" title="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
       </div>
     </div>
@@ -371,8 +386,16 @@ button,input,select,textarea{font:inherit;color:inherit}
     <div class="f" id="fPass2" hidden><label for="lPass2">Repite la contraseña</label><input id="lPass2" type="password" autocomplete="new-password"></div>
     <p class="hint" id="lErr" hidden style="color:var(--danger)"></p>
     <p class="hint" id="lOk" hidden style="color:var(--ok)"></p>
+    <p class="hint" style="margin:0"><button class="linkbtn" type="button" data-guia="registro">¿Primera vez? Ver la guía de registro</button></p>
     <div class="row" style="justify-content:space-between"><button class="linkbtn" type="button" id="btnModo">¿No tienes cuenta? Crear cuenta</button><button class="btn primary" id="btnLogin" type="submit">Entrar</button></div>
   </form>
+</div>
+
+<div class="modal" id="mGuia" hidden>
+  <div class="sheet" role="dialog" aria-labelledby="gTitle">
+    <div class="sec-h"><h2 style="font-size:17px" id="gTitle">Guía de uso</h2><button class="btn sm" id="btnCerrarGuia">Cerrar</button></div>
+    <div class="guia" id="guiaBody"></div>
+  </div>
 </div>
 
 <div class="modal" id="mPend" hidden>
@@ -380,6 +403,7 @@ button,input,select,textarea{font:inherit;color:inherit}
     <div class="sec-h"><h2 style="font-size:17px" id="pTitle">Cuenta pendiente de aprobación</h2></div>
     <p class="hint" id="pTxt">Tu cuenta fue creada. El administrador debe aprobarla antes de que puedas ver y crear actas. Esta pantalla se actualiza sola cuando te aprueben.</p>
     <p class="hint" id="pWho"></p>
+    <p class="hint" style="margin:0"><button class="linkbtn" type="button" data-guia="firmar">¿Qué hago después? Ver la guía</button></p>
     <div class="row" style="justify-content:space-between"><button class="btn sm danger" id="btnPendSalir">Cerrar sesión</button><button class="btn primary" id="btnPendCheck">Comprobar de nuevo</button></div>
   </div>
 </div>
@@ -493,6 +517,7 @@ const D = {
   "Esta acta ya fue firmada por quien recibe. Como cambiaste los activos, su firma se quitó y tendrá que volver a firmar.": "This record had already been signed by the recipient. Because you changed the assets, their signature was removed and they will need to sign again.",
   "Recibido conforme": "Received in good order", "Esperando la firma de quien recibe": "Waiting for the recipient's signature",
   "Correo no válido.": "Invalid email.",
+  "Guía de uso": "User guide", "¿Primera vez? Ver la guía de registro": "First time? See the sign-up guide", "¿Qué hago después? Ver la guía": "What next? See the guide",
   "registro": "entry", "registros": "entries", "unidad": "unit", "unidades": "units", "Registrada": "Recorded",
 };
 const PAT = [
@@ -1472,6 +1497,59 @@ $("#fLogin").addEventListener("submit", async e => {
   finally { b.disabled = false; b.textContent = "Entrar"; }
 });
 $("#btnLogout").addEventListener("click", async () => { $("#mAjustes").hidden = true; try { await store.sb.auth.signOut(); } catch {} toast("Sesión cerrada."); });
+
+/* ---------------- Guía de uso ---------------- */
+const GUIA = [
+  { id: "registro", supa: true, who: ["Todos", "Everyone"], t: ["Crear tu cuenta", "Create your account"], pasos: [
+    ["Abre la app en tu celular o computadora: <b>actas-tuempresa.netlify.app</b>.", "Open the app on your phone or computer: <b>actas-tuempresa.netlify.app</b>."],
+    ["Pulsa <b>“¿No tienes cuenta? Crear cuenta”</b>.", "Tap <b>“Don't have an account? Create account”</b>."],
+    ["Escribe tu <b>nombre completo</b>, tu <b>correo</b> y una <b>contraseña</b> de al menos 6 caracteres (dos veces).", "Enter your <b>full name</b>, your <b>email</b> and a <b>password</b> of at least 6 characters (twice)."],
+    ["Pulsa <b>Crear cuenta</b>. Verás el aviso <b>“Cuenta pendiente de aprobación”</b>.", "Tap <b>Create account</b>. You will see <b>“Account pending approval”</b>."],
+    ["Avisa al administrador. Cuando te apruebe, la pantalla se actualiza sola (o pulsa <b>Comprobar de nuevo</b>).", "Let the administrator know. Once approved, the screen updates by itself (or tap <b>Check again</b>)."],
+  ], tip: ["Usa siempre el mismo correo: con él te asignan las actas que debes firmar.", "Always use the same email: records you need to sign are assigned to it."] },
+  { id: "llenar", admin: true, who: ["Administrador", "Administrator"], t: ["Llenar un acta", "Fill in a record"], pasos: [
+    ["<b>Datos del acta:</b> elige el tipo (Entrega, Recepción, Devolución o Traslado), revisa la fecha y escribe sede, origen y destino. En un traslado el destino es obligatorio.", "<b>Record details:</b> choose the type (Handover, Receipt, Return or Transfer), check the date and enter site, origin and destination. Destination is required for transfers."],
+    ["<b>Activos:</b> pulsa <b>Escanear</b> (toma una foto del código de barras) o <b>Cámara en vivo</b>, o escribe el código. Completa descripción, marca, modelo, serie, estado y cantidad, y pulsa <b>Agregar activo</b>. Repite por cada activo.", "<b>Assets:</b> tap <b>Scan</b> (take a photo of the barcode) or <b>Live camera</b>, or type the code. Fill in description, brand, model, serial, condition and quantity, then tap <b>Add asset</b>. Repeat for each asset."],
+    ["En la lista de activos, el <b>lápiz</b> corrige un activo y la <b>X</b> lo quita.", "In the asset list, the <b>pencil</b> edits an asset and the <b>X</b> removes it."],
+    ["<b>Personas:</b> escribe el nombre de quien entrega y de quien recibe (documento, cargo y área son opcionales).", "<b>People:</b> enter the names of who hands over and who receives (ID, position and area are optional)."],
+    ["Si quien recibe firmará desde su propio celular, escribe su <b>“Correo de su cuenta en la app”</b>.", "If the recipient will sign from their own phone, enter their <b>“Email of their app account”</b>.", "supa"],
+    ["<b>Firmas:</b> firma con el dedo o el mouse como quien entrega. Quien recibe puede firmar ahí mismo o, si pusiste su correo, después desde su cuenta.", "<b>Signatures:</b> sign with your finger or mouse as the person handing over. The recipient can sign right there or, if you entered their email, later from their account."],
+    ["Pulsa <b>Guardar acta</b>. Se asigna el folio y se abre el detalle, donde puedes <b>Descargar PDF</b>.", "Tap <b>Save record</b>. A number is assigned and the details open, where you can <b>Download PDF</b>."],
+    ["Para corregir: <b>Historial</b>, abre el acta y pulsa <b>Corregir acta</b>. Si cambias los activos de un acta ya firmada, quien recibe debe firmar de nuevo.", "To correct: <b>History</b>, open the record and tap <b>Correct record</b>. If you change the assets of a signed record, the recipient must sign again."],
+  ], tip: ["Mientras llenas el acta, todo se guarda solo como borrador en este dispositivo.", "While you fill in the record, everything is saved automatically as a draft on this device."] },
+  { id: "firmar", supa: true, who: ["Quien recibe", "Recipient"], t: ["Firmar un acta como conforme", "Sign a record as received"], pasos: [
+    ["Inicia sesión con tu correo y contraseña.", "Sign in with your email and password."],
+    ["En <b>Historial</b> verás tus actas. Las que dicen <b>“Pendiente de firma”</b> esperan tu firma.", "In <b>History</b> you will see your records. Those marked <b>“Pending signature”</b> are waiting for you."],
+    ["Ábrela y revisa que los activos, series, estados y cantidades sean correctos.", "Open it and check that the assets, serials, conditions and quantities are correct."],
+    ["Firma en el recuadro <b>“Tu firma”</b>, marca la casilla de conformidad y pulsa <b>Firmar como conforme</b>.", "Sign in the <b>“Your signature”</b> box, tick the agreement box and tap <b>Sign as received</b>."],
+    ["Listo: el acta queda como <b>“Recibido conforme”</b> con la fecha, y puedes descargar el PDF.", "Done: the record shows <b>“Received in good order”</b> with the date, and you can download the PDF."],
+  ], tip: ["Si algo no coincide, no firmes: avisa al administrador para que corrija el acta.", "If something doesn't match, don't sign: tell the administrator so they can correct the record."] },
+  { id: "consejos", who: ["Todos", "Everyone"], t: ["Consejos", "Tips"], pasos: [
+    ["En el celular, abre el menú del navegador y elige <b>“Agregar a pantalla de inicio”</b> para tenerla como una app.", "On your phone, open the browser menu and choose <b>“Add to Home screen”</b> to use it like an app."],
+    ["Si el escáner no lee el código, acerca la cámara, busca buena luz o escribe el código a mano.", "If the scanner can't read the code, move closer, find good light or type the code by hand."],
+    ["<b>ES / EN</b> cambia el idioma y la <b>luna</b> el modo oscuro. El PDF sale en el mismo idioma y modo.", "<b>ES / EN</b> switches the language and the <b>moon</b> toggles dark mode. The PDF follows the same language and mode."],
+  ] },
+];
+let guiaAbierta = null;
+function renderGuia() {
+  const en = LANG === "en" ? 1 : 0, supa = store.mode === "supa", rec = esReceptor(), logged = !!store.user;
+  const secs = GUIA.filter(g => (!g.supa || supa) && !(g.admin && rec) && !(g.id === "firmar" && supa && logged && store.esAdmin));
+  const abrir = guiaAbierta || (!supa ? "llenar" : !logged || (store.perfil && store.perfil.estado !== "aprobado") ? "registro" : rec ? "firmar" : "llenar");
+  $("#guiaBody").innerHTML = secs.map(g => `<details data-sec="${g.id}"${g.id === abrir ? " open" : ""}><summary>${g.t[en]}<span class="who">${g.who[en]}</span></summary>
+    <ol>${g.pasos.filter(p => p[2] !== "supa" || supa).map(p => `<li>${p[en]}</li>`).join("")}</ol>${g.tip ? `<div class="tip">${g.tip[en]}</div>` : ""}</details>`).join("");
+}
+function abrirGuia(sec) { guiaAbierta = sec || null; renderGuia(); $("#mGuia").hidden = false; }
+$("#btnGuia").addEventListener("click", () => abrirGuia());
+$("#btnCerrarGuia").addEventListener("click", () => { $("#mGuia").hidden = true; });
+$("#mGuia").addEventListener("click", e => { if (e.target.id === "mGuia") $("#mGuia").hidden = true; });
+document.addEventListener("click", e => { const g = e.target.closest("[data-guia]"); if (g) abrirGuia(g.dataset.guia); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") $("#mGuia").hidden = true; });
+store.listeners.push(() => {
+  if (!$("#mGuia").hidden) renderGuia();
+  // La primera vez que quien recibe entra, se le muestra la guía de firma
+  if (esReceptor() && store.perfil?.estado === "aprobado" && !lsGet("actas-guia-rec", false)) { lsSet("actas-guia-rec", true); abrirGuia("firmar"); }
+});
+{ const _sl = setLang; setLang = l => { _sl(l); if (!$("#mGuia").hidden) renderGuia(); }; }
 
 /* ---------------- Inicio ---------------- */
 { const t = lsGet("actas-tema", null); aplicarTema(t === "dark" || t === "light" ? t : null, false); }
