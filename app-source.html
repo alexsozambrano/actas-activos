@@ -516,7 +516,9 @@ const D = {
   "Esta acta ya fue firmada por quien recibe. Como cambiaste los activos, su firma se quitó y tendrá que volver a firmar.": "This record had already been signed by the recipient. Because you changed the assets, their signature was removed and they will need to sign again.",
   "Recibido conforme": "Received in good order", "Esperando la firma de quien recibe": "Waiting for the recipient's signature",
   "Correo no válido.": "Invalid email.",
-  "Guía de uso": "User guide", "¿Primera vez? Ver la guía de registro": "First time? See the sign-up guide", "¿Qué hago después? Ver la guía": "What next? See the guide",
+  "Guía de uso": "User guide", "Solo el administrador puede corregir actas.": "Only the administrator can correct records.", "Registrada por": "Recorded by", "Se asigna al guardar": "Assigned on save",
+  "Aún no tienes actas": "You have no records yet", "Llenar mi primera acta": "Fill in my first record",
+  "Aquí verás las actas que llenes y las que otros registren a tu nombre para que las firmes.": "Here you will see the records you fill in and those others record in your name for you to sign.", "¿Primera vez? Ver la guía de registro": "First time? See the sign-up guide", "¿Qué hago después? Ver la guía": "What next? See the guide",
   "registro": "entry", "registros": "entries", "unidad": "unit", "unidades": "units", "Registrada": "Recorded",
 };
 const PAT = [
@@ -708,8 +710,11 @@ const store = {
   },
   async save(acta) {
     if (this.mode === "supa") {
-      const { error } = await this.sb.from("actas").upsert({ id: acta.id, folio: acta.folio, tipo: acta.tipo, fecha: acta.fecha, data: acta });
-      if (error) throw error;
+      const existe = this.actas.some(a => a.id === acta.id);
+      const fila = { id: acta.id, folio: acta.folio, tipo: acta.tipo, fecha: acta.fecha, data: acta };
+      const r = existe ? await this.sb.from("actas").upsert(fila) : await this.sb.from("actas").insert(fila).select("folio").maybeSingle();
+      if (r.error) throw r.error;
+      if (!existe && r.data?.folio) acta.folio = r.data.folio;
       this.actas = this.actas.filter(a => a.id !== acta.id).concat(acta); this.emit(); return;
     }
     if (this.mode === "db") { await this.db.collection("actas").doc(acta.id).set(acta); }
@@ -733,15 +738,12 @@ const store = {
   },
 };
 /* Roles: en la versión con base de datos propia, solo el administrador crea, corrige y borra; quien recibe solo firma */
-const esReceptor = () => store.mode === "supa" && !!store.perfil && !store.esAdmin;
-const puedeEditar = () => !esReceptor();
+const esReceptor = () => store.mode === "supa" && !!store.perfil && !store.esAdmin; // usuario aprobado (no administrador)
+const puedeEditar = () => !esReceptor(); // corregir y borrar actas guardadas: solo el administrador
 function aplicarRol() {
-  const rec = esReceptor();
-  $("#tabNueva").hidden = rec;
+  $("#tabNueva").hidden = false;
   $("#fRCorreo").hidden = !(store.mode === "supa" && store.perfil);
-  if (rec && (view === "nueva")) setView("historial");
-  else if (view === "nueva") $("#bar").hidden = false;
-  if (rec) $("#bar").hidden = true;
+  if (view === "nueva") $("#bar").hidden = false;
 }
 function setSync(txt, on) { $("#syncTxt").textContent = txt; $("#syncDot").classList.toggle("on", !!on); }
 
@@ -830,7 +832,7 @@ function resetForm() {
 
 function refreshForm() {
   const tipo = tipoSel();
-  $("#folioPrev").textContent = editando?.folio || nextFolio(tipo, $("#fecha").value);
+  $("#folioPrev").textContent = editando?.folio || (esReceptor() ? "Se asigna al guardar" : nextFolio(tipo, $("#fecha").value));
   $("#lblOrigen").textContent = tipo === "traslado" ? "Ubicación origen" : "Ubicación / área origen";
   $("#destino").closest(".f").classList.toggle("req", tipo === "traslado");
   $("#barTipo").textContent = TIPOS[tipo].nombre;
@@ -994,8 +996,8 @@ async function guardar() {
   req.forEach(id => { if (!v(id)) { faltan.push(id); $("#" + id).closest(".f").classList.add("err"); } });
   if (faltan.length) { toast("Completa los campos obligatorios marcados en rojo.", true); $("#" + faltan[0]).focus(); return; }
   if (!assets.length) { toast("Agrega al menos un activo al acta.", true); $("#aCodigo").focus(); return; }
-  if (!puedeEditar()) { toast("Solo el administrador puede crear o corregir actas.", true); return; }
   const ed = editando && editando.folio ? editando : null;
+  if (ed && !puedeEditar()) { toast("Solo el administrador puede corregir actas.", true); return; }
   const correo = store.mode === "supa" && store.perfil ? v("rCorreo").toLowerCase() : "";
   if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { $("#rCorreo").closest(".f").classList.add("err"); toast("Correo no válido.", true); $("#rCorreo").focus(); return; }
   const cambiaronActivos = ed && JSON.stringify(ed.activos || []) !== JSON.stringify(assets);
@@ -1220,7 +1222,7 @@ function renderHist() {
   }).sort((x, y) => (y.fecha || "").localeCompare(x.fecha || "") || (y.folio || "").localeCompare(x.folio || ""));
   const el = $("#histList");
   if (!store.actas.length && esReceptor()) {
-    el.innerHTML = `<div class="sec zero"><h3>Aún no hay actas a tu nombre</h3><p class="hint">Cuando el administrador registre una entrega para ti, aparecerá aquí para que la revises y la firmes.</p></div>`;
+    el.innerHTML = `<div class="sec zero"><h3>Aún no tienes actas</h3><p class="hint">Aquí verás las actas que llenes y las que otros registren a tu nombre para que las firmes.</p><button class="btn primary" data-go="nueva">Llenar mi primera acta</button></div>`;
     return;
   }
   if (!store.actas.length) {
@@ -1263,6 +1265,7 @@ function renderDetail() {
         <div><span>Lugar / sede</span><b>${esc(a.lugar || "—")}</b></div>
         <div><span>Origen</span><b>${esc(a.origen || "—")}</b></div>
         <div><span>Destino</span><b>${esc(a.destino || "—")}</b></div>
+        ${a.registradoPor ? `<div><span>Registrada por</span><b>${esc(a.registradoPor)}</b></div>` : ""}
       </div>
     </section>
     <div class="grid two">${per(a.entrega, "Quien entrega")}${per(a.recibe, "Quien recibe")}</div>
@@ -1283,7 +1286,7 @@ function renderDetail() {
       <label class="conf"><input type="checkbox" id="chkConf"><span>Declaro que recibí los activos descritos en esta acta, en el estado indicado, y estoy conforme.</span></label>
       <div class="row" style="justify-content:flex-end"><button class="btn primary" id="btnFirmarC">Firmar como conforme</button></div>
     </section>` : ""}
-    ${edit ? `<section class="sec"><h2 style="font-size:16px">Crear acta a partir de esta</h2>
+    <section class="sec"><h2 style="font-size:16px">Crear acta a partir de esta</h2>
       <p class="hint">Copia los activos y las personas a una nueva acta. En una devolución se invierten quien entrega y quien recibe.</p>
       <div class="row">
         <button class="btn" data-from="devolucion">Devolución</button>
@@ -1292,7 +1295,7 @@ function renderDetail() {
         <button class="btn" data-from="recepcion">Recepción</button>
       </div>
     </section>
-    <div id="delZone"><button class="btn danger sm" id="btnDel">Eliminar acta</button></div>` : ""}`;
+    ${edit ? `<div id="delZone"><button class="btn danger sm" id="btnDel">Eliminar acta</button></div>` : ""}`;
   $("#btnPdf").onclick = e => descargarPDF(a, e.currentTarget);
   if ($("#btnCorr")) $("#btnCorr").onclick = () => corregirActa(a);
   if (puedoFirmar) {
@@ -1337,10 +1340,9 @@ function desdeActa(a, tipo) {
 /* ---------------- Vistas ---------------- */
 let view = "nueva";
 function setView(v) {
-  if (v === "nueva" && esReceptor()) v = "historial";
   view = v;
   $("#vNueva").hidden = v !== "nueva"; $("#vHist").hidden = v !== "historial"; $("#vDet").hidden = v !== "detalle"; $("#vUsers").hidden = v !== "usuarios"; $("#bar").hidden = v !== "nueva";
-  $("#tabNueva").setAttribute("aria-selected", v === "nueva"); if (esReceptor()) $("#bar").hidden = true; $("#tabHist").setAttribute("aria-selected", v === "historial" || v === "detalle"); $("#tabUsers").setAttribute("aria-selected", v === "usuarios");
+  $("#tabNueva").setAttribute("aria-selected", v === "nueva"); $("#tabHist").setAttribute("aria-selected", v === "historial" || v === "detalle"); $("#tabUsers").setAttribute("aria-selected", v === "usuarios");
   document.body.style.paddingBottom = v === "nueva" ? "" : "32px";
   if (v === "historial") renderHist(); if (v === "detalle") renderDetail(); if (v === "usuarios") { renderUsers(); store.loadUsers?.(); } if (v === "nueva") requestAnimationFrame(() => { padE.resize(); padR.resize(); });
   window.scrollTo({ top: 0 });
@@ -1506,7 +1508,7 @@ const GUIA = [
     ["Pulsa <b>Crear cuenta</b>. Verás el aviso <b>“Cuenta pendiente de aprobación”</b>.", "Tap <b>Create account</b>. You will see <b>“Account pending approval”</b>."],
     ["Avisa al administrador. Cuando te apruebe, la pantalla se actualiza sola (o pulsa <b>Comprobar de nuevo</b>).", "Let the administrator know. Once approved, the screen updates by itself (or tap <b>Check again</b>)."],
   ], tip: ["Usa siempre el mismo correo: con él te asignan las actas que debes firmar.", "Always use the same email: records you need to sign are assigned to it."] },
-  { id: "llenar", admin: true, who: ["Administrador", "Administrator"], t: ["Llenar un acta", "Fill in a record"], pasos: [
+  { id: "llenar", who: ["Usuarios aprobados", "Approved users"], t: ["Llenar un acta", "Fill in a record"], pasos: [
     ["<b>Datos del acta:</b> elige el tipo (Entrega, Recepción, Devolución o Traslado), revisa la fecha y escribe sede, origen y destino. En un traslado el destino es obligatorio.", "<b>Record details:</b> choose the type (Handover, Receipt, Return or Transfer), check the date and enter site, origin and destination. Destination is required for transfers."],
     ["<b>Activos:</b> pulsa <b>Escanear</b> (toma una foto del código de barras) o <b>Cámara en vivo</b>, o escribe el código. Completa descripción, marca, modelo, serie, estado y cantidad, y pulsa <b>Agregar activo</b>. Repite por cada activo.", "<b>Assets:</b> tap <b>Scan</b> (take a photo of the barcode) or <b>Live camera</b>, or type the code. Fill in description, brand, model, serial, condition and quantity, then tap <b>Add asset</b>. Repeat for each asset."],
     ["En la lista de activos, el <b>lápiz</b> corrige un activo y la <b>X</b> lo quita.", "In the asset list, the <b>pencil</b> edits an asset and the <b>X</b> removes it."],
@@ -1514,7 +1516,8 @@ const GUIA = [
     ["Si quien recibe firmará desde su propio celular, escribe su <b>“Correo de su cuenta en la app”</b>.", "If the recipient will sign from their own phone, enter their <b>“Email of their app account”</b>.", "supa"],
     ["<b>Firmas:</b> firma con el dedo o el mouse como quien entrega. Quien recibe puede firmar ahí mismo o, si pusiste su correo, después desde su cuenta.", "<b>Signatures:</b> sign with your finger or mouse as the person handing over. The recipient can sign right there or, if you entered their email, later from their account."],
     ["Pulsa <b>Guardar acta</b>. Se asigna el folio y se abre el detalle, donde puedes <b>Descargar PDF</b>.", "Tap <b>Save record</b>. A number is assigned and the details open, where you can <b>Download PDF</b>."],
-    ["Para corregir: <b>Historial</b>, abre el acta y pulsa <b>Corregir acta</b>. Si cambias los activos de un acta ya firmada, quien recibe debe firmar de nuevo.", "To correct: <b>History</b>, open the record and tap <b>Correct record</b>. If you change the assets of a signed record, the recipient must sign again."],
+    ["Para corregir: <b>Historial</b>, abre el acta y pulsa <b>Corregir acta</b>. Si cambias los activos de un acta ya firmada, quien recibe debe firmar de nuevo.", "To correct: <b>History</b>, open the record and tap <b>Correct record</b>. If you change the assets of a signed record, the recipient must sign again.", "admin"],
+    ["Revisa bien antes de guardar: una vez guardada, <b>solo el administrador</b> puede corregir o borrar el acta. Si encuentras un error, avísale.", "Check carefully before saving: once saved, <b>only the administrator</b> can correct or delete the record. If you find a mistake, let them know.", "user"],
   ], tip: ["Mientras llenas el acta, todo se guarda solo como borrador en este dispositivo.", "While you fill in the record, everything is saved automatically as a draft on this device."] },
   { id: "firmar", supa: true, who: ["Quien recibe", "Recipient"], t: ["Firmar un acta como conforme", "Sign a record as received"], pasos: [
     ["Inicia sesión con tu correo y contraseña.", "Sign in with your email and password."],
@@ -1533,9 +1536,9 @@ let guiaAbierta = null;
 function renderGuia() {
   const en = LANG === "en" ? 1 : 0, supa = store.mode === "supa", rec = esReceptor(), logged = !!store.user;
   const secs = GUIA.filter(g => (!g.supa || supa) && !(g.admin && rec) && !(g.id === "firmar" && supa && logged && store.esAdmin));
-  const abrir = guiaAbierta || (!supa ? "llenar" : !logged || (store.perfil && store.perfil.estado !== "aprobado") ? "registro" : rec ? "firmar" : "llenar");
+  const abrir = guiaAbierta || (!supa ? "llenar" : !logged || (store.perfil && store.perfil.estado !== "aprobado") ? "registro" : "llenar");
   $("#guiaBody").innerHTML = secs.map(g => `<details data-sec="${g.id}"${g.id === abrir ? " open" : ""}><summary>${g.t[en]}<span class="who">${g.who[en]}</span></summary>
-    <ol>${g.pasos.filter(p => p[2] !== "supa" || supa).map(p => `<li>${p[en]}</li>`).join("")}</ol>${g.tip ? `<div class="tip">${g.tip[en]}</div>` : ""}</details>`).join("");
+    <ol>${g.pasos.filter(p => (p[2] !== "supa" || supa) && (p[2] !== "admin" || !rec) && (p[2] !== "user" || rec)).map(p => `<li>${p[en]}</li>`).join("")}</ol>${g.tip ? `<div class="tip">${g.tip[en]}</div>` : ""}</details>`).join("");
 }
 function abrirGuia(sec) { guiaAbierta = sec || null; renderGuia(); $("#mGuia").hidden = false; }
 $("#btnGuia").addEventListener("click", () => abrirGuia());
@@ -1546,7 +1549,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") $("#mGuia").
 store.listeners.push(() => {
   if (!$("#mGuia").hidden) renderGuia();
   // La primera vez que quien recibe entra, se le muestra la guía de firma
-  if (esReceptor() && store.perfil?.estado === "aprobado" && !lsGet("actas-guia-rec", false)) { lsSet("actas-guia-rec", true); abrirGuia("firmar"); }
+  if (esReceptor() && store.perfil?.estado === "aprobado" && !lsGet("actas-guia-usr", false)) { lsSet("actas-guia-usr", true); abrirGuia("llenar"); }
 });
 { const _sl = setLang; setLang = l => { _sl(l); if (!$("#mGuia").hidden) renderGuia(); }; }
 
