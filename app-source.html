@@ -210,6 +210,13 @@ html.netlify .toast{bottom:calc(150px + env(safe-area-inset-bottom, 0px))!import
 .guia ol{margin:0;padding:0 14px 6px 36px;display:flex;flex-direction:column;gap:8px;font-size:14px;line-height:1.45}
 .guia ol li::marker{color:var(--accent);font-weight:700}
 .guia .tip{margin:4px 14px 14px;padding:10px 12px;border-radius:8px;background:var(--accent-soft);font-size:13px;line-height:1.4}
+.pill.aprobada{background:var(--ok-soft);color:var(--ok)}.pill.rechazada{background:var(--danger-soft);color:var(--danger)}.pill.atendida{background:var(--black);color:var(--green-hi)}
+@media (max-width:520px){.tabs{flex-wrap:wrap}.tab{padding:7px 11px;font-size:13px}}
+.pcard{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:8px}
+.pcard .ph{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.pcard .ph .when{margin-left:auto;font-size:12px;color:var(--muted)}
+.pcard ul{margin:0;padding-left:18px;font-size:14px}.pcard .acts{display:flex;gap:6px;flex-wrap:wrap}
+.pitem{display:grid;grid-template-columns:1fr 90px 1fr auto;gap:8px;align-items:end}
+@media (max-width:640px){.pitem{grid-template-columns:1fr 80px auto}.pitem .pdet{grid-column:1/-1;order:5}}
 .confirm{border:1px solid var(--danger);background:var(--danger-soft);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
 
 /* Modales y avisos */
@@ -245,12 +252,14 @@ html.netlify .toast{bottom:calc(150px + env(safe-area-inset-bottom, 0px))!import
     <nav class="tabs" role="tablist">
       <button class="tab" role="tab" id="tabNueva" data-view="nueva" aria-selected="true">Nueva acta</button>
       <button class="tab" role="tab" id="tabHist" data-view="historial" aria-selected="false">Historial <span class="count" id="histCount">0</span></button>
+      <button class="tab" role="tab" id="tabPet" data-view="peticiones" aria-selected="false">Peticiones <span class="count" id="petCount"></span></button>
       <button class="tab" role="tab" id="tabUsers" data-view="usuarios" aria-selected="false" hidden>Usuarios <span class="count" id="usersCount"></span></button>
     </nav>
   </header>
 
   <!-- ============ NUEVA ACTA ============ -->
   <main id="vNueva" class="stack">
+    <div class="editban" id="petBan" hidden><span>Esta acta atiende la petición <b class="mono" id="petBanFolio"></b>. Al guardarla, la petición quedará como atendida.</span><button class="btn sm" id="btnQuitarPet">Quitar vínculo</button></div>
     <div class="editban" id="editBan" hidden><span>Estás corrigiendo el acta <b class="mono" id="editFolio"></b>. Los cambios reemplazan la versión guardada.</span><button class="btn sm" id="btnCancelCorr">Cancelar corrección</button></div>
     <section class="sec">
       <div class="sec-h"><h2><span class="step">1/4</span> Datos del acta</h2><span class="hint">Folio <b class="mono" id="folioPrev">—</b></span></div>
@@ -341,6 +350,30 @@ html.netlify .toast{bottom:calc(150px + env(safe-area-inset-bottom, 0px))!import
       <div class="f"><label for="fMes">Mes</label><input type="month" id="fMes"></div>
     </div>
     <div class="list" id="histList"></div>
+  </main>
+
+  <!-- ============ PETICIONES ============ -->
+  <main id="vPet" class="stack" hidden>
+    <div class="row" style="justify-content:space-between"><p class="hint" style="margin:0">Pide los activos que necesitas. El administrador revisa cada petición y entrega los activos con un acta.</p><button class="btn primary" id="btnPNueva">+ Nueva petición</button></div>
+    <section class="sec" id="petForm" hidden>
+      <div class="sec-h"><h2>Nueva petición de activos</h2><span class="hint">Folio <b class="mono">Se asigna al enviar</b></span></div>
+      <div class="grid">
+        <div class="f req"><label for="pNombre">Solicitante</label><input id="pNombre" autocomplete="name"></div>
+        <div class="f"><label for="pArea">Área / dependencia</label><input id="pArea" autocomplete="off"></div>
+        <div class="f"><label for="pCargo">Cargo</label><input id="pCargo" autocomplete="off"></div>
+        <div class="f"><label for="pFecha">Fecha en que lo necesitas</label><input id="pFecha" type="date"></div>
+      </div>
+      <div class="f req"><label for="pMotivo">Motivo / justificación</label><textarea id="pMotivo" placeholder="Ej. Ingreso de nuevo personal, reemplazo de equipo dañado…"></textarea></div>
+      <span class="lbl">Activos solicitados</span>
+      <div class="stack" id="pItems" style="gap:10px"></div>
+      <div><button class="btn sm" id="btnPItem">+ Agregar otro activo</button></div>
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" id="btnPCancelar">Cancelar</button><button class="btn primary" id="btnPEnviar">Enviar petición</button></div>
+    </section>
+    <div class="filters">
+      <div class="f search"><label for="pq" class="lbl">Buscar</label><input id="pq" placeholder="Folio, solicitante o activo" autocomplete="off"></div>
+      <div class="f"><label for="pfEstado">Estado</label><select id="pfEstado"><option value="">Todos</option><option value="pendiente">Pendiente</option><option value="aprobada">Aprobada</option><option value="rechazada">Rechazada</option><option value="atendida">Atendida</option></select></div>
+    </div>
+    <div class="list" id="petList"></div>
   </main>
 
   <!-- ============ USUARIOS ============ -->
@@ -525,6 +558,19 @@ const D = {
   "Esta acta ya fue firmada por quien recibe. Como cambiaste los activos, su firma se quitó y tendrá que volver a firmar.": "This record had already been signed by the recipient. Because you changed the assets, their signature was removed and they will need to sign again.",
   "Recibido conforme": "Received in good order", "Esperando la firma de quien recibe": "Waiting for the recipient's signature",
   "Correo no válido.": "Invalid email.",
+  "Peticiones": "Requests", "Petición": "Request", "Falta activar las peticiones en la base de datos (archivo 5 de Supabase).": "Requests are not enabled in the database yet (Supabase file 5).", "Pide los activos que necesitas. El administrador revisa cada petición y entrega los activos con un acta.": "Request the assets you need. The administrator reviews each request and hands over the assets with a record.",
+  "+ Nueva petición": "+ New request", "Nueva petición de activos": "New asset request", "Se asigna al enviar": "Assigned on submit", "Solicitante": "Requester",
+  "Fecha en que lo necesitas": "Date needed", "Motivo / justificación": "Reason / justification", "Ej. Ingreso de nuevo personal, reemplazo de equipo dañado…": "E.g. New staff, replacing damaged equipment…",
+  "Activos solicitados": "Requested assets", "+ Agregar otro activo": "+ Add another asset", "Enviar petición": "Submit request", "Enviando…": "Submitting…", "Cancelar": "Cancel",
+  "Folio, solicitante o activo": "Number, requester or asset", "Estado": "Status", "Pendiente": "Pending", "Aprobada": "Approved", "Rechazada": "Rejected", "Atendida": "Fulfilled",
+  "Activo solicitado": "Requested asset", "Detalle (opcional)": "Details (optional)", "Ej. Laptop": "E.g. Laptop", "Ej. 16 GB de RAM, con cargador": "E.g. 16 GB RAM, with charger",
+  "Aprobar": "Approve", "Rechazar": "Reject", "Crear acta de entrega": "Create handover record", "Marcar atendida": "Mark fulfilled", "Cancelar petición": "Cancel request",
+  "Confirmar rechazo": "Confirm rejection", "Motivo del rechazo (opcional)": "Reason for rejection (optional)", "Volver": "Back",
+  "Escribe quién solicita.": "Enter who is requesting.", "Escribe el motivo de la petición.": "Enter the reason for the request.", "Agrega al menos un activo con su descripción.": "Add at least one asset with its description.",
+  "Petición actualizada.": "Request updated.", "Petición cancelada.": "Request cancelled.", "Quitar vínculo": "Unlink",
+  "Aún no hay peticiones": "No requests yet", "Cuando alguien pida activos, la petición aparecerá aquí.": "When someone requests assets, the request will appear here.",
+  "Ninguna petición coincide con la búsqueda.": "No request matches the search.", "Respuesta del administrador": "Administrator's reply", "Necesario para": "Needed by",
+  "Esta acta atiende la petición": "This record fulfills request", "Al guardarla, la petición quedará como atendida.": "When saved, the request will be marked as fulfilled.",
   "Guía de uso": "User guide", "Solo el administrador puede corregir actas.": "Only the administrator can correct records.", "Registrada por": "Recorded by", "Se asigna al guardar": "Assigned on save",
   "Aún no tienes actas": "You have no records yet", "Llenar mi primera acta": "Fill in my first record",
   "Aquí verás las actas que llenes y las que otros registren a tu nombre para que las firmes.": "Here you will see the records you fill in and those others record in your name for you to sign.", "¿Primera vez? Ver la guía de registro": "First time? See the sign-up guide", "¿Qué hago después? Ver la guía": "What next? See the guide",
@@ -549,7 +595,9 @@ const PAT = [
   [/^No se pudieron guardar los ajustes: (.*)$/s, "Could not save the settings: $1"],
   [/^Nueva (\S+) con (\d+) activos de (.+)\. Revisa y firma\.$/, (m, t, n, f) => `New ${(D[t[0].toUpperCase() + t.slice(1)] || t).toLowerCase()} with ${n} assets from ${f}. Review and sign.`],
   [/^¿Eliminar el acta (.+)\?$/, "Delete record $1?"],
-  [/^Acta (.+) corregida\.$/, "Record $1 corrected."], [/^Acta (.+) guardada\. Quedó pendiente de la firma de (.+)\.$/s, "Record $1 saved. Waiting for $2 to sign."],
+  [/^Acta (.+) corregida\.$/, "Record $1 corrected."],
+  [/^Petición (.+) enviada\.$/, "Request $1 submitted."], [/^Atendida con el acta (.+)$/, "Fulfilled with record $1"], [/^No se pudo (enviar|actualizar) la petición: (.*)$/s, (m, v, e) => `Could not ${v === "enviar" ? "submit" : "update"} the request: ${e}`],
+  [/^Entrega con (\d+) activos? de la petición (.+)\. Completa y firma\.$/, "Handover with $1 assets from request $2. Complete and sign."], [/^Solicitado por (.*)$/s, "Requested by $1"], [/^Acta (.+) guardada\. Quedó pendiente de la firma de (.+)\.$/s, "Record $1 saved. Waiting for $2 to sign."],
   [/^No se pudo firmar: (.*)$/s, "Could not sign: $1"], [/^Recibido conforme · (.*)$/s, "Received in good order · $1"], [/^Esperando la firma de quien recibe · (.*)$/s, "Waiting for the recipient's signature · $1"],
   [/^Activos \((\d+)\)$/, "Assets ($1)"],
 ];
@@ -632,12 +680,13 @@ const store = {
         this.actas = snap.docs.map(d => ({ ...d.data(), id: d.id }));
         setSync("Sincronizado", true); this.emit();
       }, e => { clearTimeout(timer); setSync("Error de conexión", false); toast("Error al leer el historial: " + (e && e.message || e), true); });
+      pet.load();
       db.doc("config/general").onSnapshot(s => { if (s.exists) { this.config = { ...this.config, ...s.data() }; this.emit(); } }, () => {});
     } else if (window.supabase && window.ACTAS_SUPABASE && window.ACTAS_SUPABASE.url && window.ACTAS_SUPABASE.key) {
       await this.supaInit();
     } else {
       this.mode = "local";
-      this.actas = lsGet("actas-local", []);
+      this.actas = lsGet("actas-local", []); pet.load();
       setSync("Guardado en este dispositivo", false);
       this.emit();
     }
@@ -647,7 +696,7 @@ const store = {
     const c = window.ACTAS_SUPABASE; this.mode = "supa";
     this.sb = window.supabase.createClient(c.url, c.key, { auth: { persistSession: true, autoRefreshToken: true } });
     this.sb.auth.onAuthStateChange((ev, session) => {
-      if (ev === "SIGNED_OUT") { this.user = null; this.perfil = null; this.esAdmin = false; aplicarRol(); this.usuarios = []; this.actas = []; $("#tabUsers").hidden = true; try { if (this.chanP) this.sb.removeChannel(this.chanP); } catch {} this.chanP = null; hidePending(); if (view === "usuarios") setView("nueva"); this.emit(); this.stopRealtime(); showLogin(); }
+      if (ev === "SIGNED_OUT") { this.user = null; this.perfil = null; this.esAdmin = false; pet.lista = []; pet.unwatch(); aplicarRol(); this.usuarios = []; this.actas = []; $("#tabUsers").hidden = true; try { if (this.chanP) this.sb.removeChannel(this.chanP); } catch {} this.chanP = null; hidePending(); if (view === "usuarios") setView("nueva"); this.emit(); this.stopRealtime(); showLogin(); }
     });
     let session = null;
     try { session = (await this.sb.auth.getSession()).data.session; } catch {}
@@ -671,6 +720,7 @@ const store = {
     aplicarRol();
     if (this.esAdmin) this.loadUsers();
     await this.supaLoad();
+    pet.load(); pet.watch();
     this.stopRealtime();
     try {
       this.chan = this.sb.channel("actas-cambios")
@@ -795,6 +845,7 @@ const padE = new Firma($("#padE"), $("#phE"));
 const padR = new Firma($("#padR"), $("#phR"));
 const FIELDS = ["fecha", "lugar", "origen", "destino", "eNombre", "eDoc", "eCargo", "eArea", "eContacto", "rNombre", "rDoc", "rCargo", "rArea", "rContacto", "rCorreo", "obs"];
 let editando = null; // acta que se está corrigiendo
+let petOrigen = null; // petición que atiende el acta en curso
 const tipoSel = () => ($("input[name=tipo]:checked") || {}).value || "entrega";
 
 function nextFolio(tipo, fechaISO) {
@@ -804,7 +855,7 @@ function nextFolio(tipo, fechaISO) {
 }
 
 function saveDraft() {
-  const d = { tipo: tipoSel(), assets, firmaE: padE.strokes, firmaR: padR.strokes, editId: editando?.id || null };
+  const d = { tipo: tipoSel(), assets, firmaE: padE.strokes, firmaR: padR.strokes, editId: editando?.id || null, pet: petOrigen };
   FIELDS.forEach(f => d[f] = $("#" + f).value);
   lsSet("actas-borrador", d);
 }
@@ -815,7 +866,9 @@ function loadDraft(d) {
   assets = Array.isArray(d.assets) ? d.assets : [];
   padE.set(d.firmaE); padR.set(d.firmaR);
   editando = d.editId ? { id: d.editId, pendiente: true } : null;
+  setPetOrigen(d.pet || null);
 }
+function setPetOrigen(p) { petOrigen = p && p.id ? { id: p.id, folio: p.folio } : null; $("#petBan").hidden = !petOrigen; if (petOrigen) $("#petBanFolio").textContent = petOrigen.folio; }
 function setEditando(a) {
   editando = a; $("#editBan").hidden = !a; $(".types").classList.toggle("locked", !!a);
   $$("input[name=tipo]").forEach(r => r.disabled = !!a);
@@ -835,7 +888,7 @@ function corregirActa(a) {
 function resetForm() {
   FIELDS.forEach(f => $("#" + f).value = "");
   $("#fecha").value = localISO();
-  assets = []; editIdx = -1; clearAssetInputs(); padE.set([]); padR.set([]); setEditando(null);
+  assets = []; editIdx = -1; clearAssetInputs(); padE.set([]); padR.set([]); setEditando(null); setPetOrigen(null);
   $("#tipo-entrega").checked = true; saveDraft(); refreshForm();
 }
 
@@ -1006,6 +1059,7 @@ async function guardar() {
   if (faltan.length) { toast("Completa los campos obligatorios marcados en rojo.", true); $("#" + faltan[0]).focus(); return; }
   if (!assets.length) { toast("Agrega al menos un activo al acta.", true); $("#aCodigo").focus(); return; }
   const ed = editando && editando.folio ? editando : null;
+  const petAtiende = !ed ? petOrigen : null;
   if (ed && !puedeEditar()) { toast("Solo el administrador puede corregir actas.", true); return; }
   const correo = store.mode === "supa" && store.perfil ? v("rCorreo").toLowerCase() : "";
   if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { $("#rCorreo").closest(".f").classList.add("err"); toast("Correo no válido.", true); $("#rCorreo").focus(); return; }
@@ -1031,7 +1085,7 @@ async function guardar() {
     estadoFirma: firmaR ? "firmada" : "pendiente",
     ...(firmaR ? (nuevaFirmaR || !ed ? { conforme: true, firmadoRecibeEn: new Date().toISOString(), firmadoRecibeEnSitio: true } : { conforme: ed.conforme ?? true, firmadoRecibeEn: ed.firmadoRecibeEn || ed.creadoEn, ...(ed.firmadoRecibePor ? { firmadoRecibePor: ed.firmadoRecibePor } : {}), ...(ed.firmadoRecibeEnSitio ? { firmadoRecibeEnSitio: true } : {}) }) : {}),
   };
-  if (!ed) { acta.creadoEn = new Date().toISOString(); acta.registradoPor = store.perfil?.nombre || store.user?.email || ""; }
+  if (!ed) { acta.creadoEn = new Date().toISOString(); acta.registradoPor = store.perfil?.nombre || store.user?.email || ""; if (petAtiende) acta.peticion = { ...petAtiende }; }
   else acta.correcciones = acta.correcciones.concat({ en: new Date().toISOString(), por: store.perfil?.nombre || store.user?.email || "" });
   const btn = $("#btnGuardar"); btn.disabled = true; btn.textContent = "Guardando…";
   try {
@@ -1042,6 +1096,7 @@ async function guardar() {
       await store.save(acta); toast("Ese folio ya existía; se asignó el siguiente número.");
     }
     if (store.mode === "db" && !store.actas.some(a => a.id === acta.id)) store.actas.push(acta);
+    if (petAtiende) { try { await pet.cambiar(petAtiende.id, { estado: "atendida", actaId: acta.id, actaFolio: acta.folio, atendidaEn: new Date().toISOString(), atendidaPor: store.perfil?.nombre || store.user?.email || "" }); } catch (e) { toast("No se pudo actualizar la petición: " + (e?.message || e), true); } }
     resetForm();
     if (ed) { toast(`Acta ${acta.folio} corregida.`); if (avisoFirma) setTimeout(() => toast("Esta acta ya fue firmada por quien recibe. Como cambiaste los activos, su firma se quitó y tendrá que volver a firmar.", true), 400); }
     else if (!firmaR) toast(`Acta ${acta.folio} guardada. Quedó pendiente de la firma de ${acta.recibe.nombre}.`);
@@ -1275,6 +1330,7 @@ function renderDetail() {
         <div><span>Origen</span><b>${esc(a.origen || "—")}</b></div>
         <div><span>Destino</span><b>${esc(a.destino || "—")}</b></div>
         ${a.registradoPor ? `<div><span>Registrada por</span><b>${esc(a.registradoPor)}</b></div>` : ""}
+        ${a.peticion?.folio ? `<div><span>Petición</span><b class="mono">${esc(a.peticion.folio)}</b></div>` : ""}
       </div>
     </section>
     <div class="grid two">${per(a.entrega, "Quien entrega")}${per(a.recibe, "Quien recibe")}</div>
@@ -1350,10 +1406,10 @@ function desdeActa(a, tipo) {
 let view = "nueva";
 function setView(v) {
   view = v;
-  $("#vNueva").hidden = v !== "nueva"; $("#vHist").hidden = v !== "historial"; $("#vDet").hidden = v !== "detalle"; $("#vUsers").hidden = v !== "usuarios"; $("#bar").hidden = v !== "nueva";
+  $("#vNueva").hidden = v !== "nueva"; $("#vHist").hidden = v !== "historial"; $("#vDet").hidden = v !== "detalle"; $("#vUsers").hidden = v !== "usuarios"; $("#vPet").hidden = v !== "peticiones"; $("#tabPet").setAttribute("aria-selected", v === "peticiones"); $("#bar").hidden = v !== "nueva";
   $("#tabNueva").setAttribute("aria-selected", v === "nueva"); $("#tabHist").setAttribute("aria-selected", v === "historial" || v === "detalle"); $("#tabUsers").setAttribute("aria-selected", v === "usuarios");
   document.body.style.paddingBottom = v === "nueva" ? "" : (document.documentElement.classList.contains("netlify") ? "84px" : "32px");
-  if (v === "historial") renderHist(); if (v === "detalle") renderDetail(); if (v === "usuarios") { renderUsers(); store.loadUsers?.(); } if (v === "nueva") requestAnimationFrame(() => { padE.resize(); padR.resize(); });
+  if (v === "historial") renderHist(); if (v === "detalle") renderDetail(); if (v === "usuarios") { renderUsers(); store.loadUsers?.(); } if (v === "peticiones") renderPet(); if (v === "nueva") requestAnimationFrame(() => { padE.resize(); padR.resize(); });
   window.scrollTo({ top: 0 });
   try { const h = v === "detalle" ? "" : "#" + v; if (location.hash !== h && h) history.replaceState(null, "", h); } catch {}
 }
@@ -1365,6 +1421,7 @@ function renderAll() {
   $("#dlPersonas").innerHTML = [...personas.keys()].sort().map(n => `<option value="${esc(n)}">`).join("");
   refreshForm();
   if (view === "historial") renderHist(); if (view === "detalle") renderDetail();
+  renderPetCount(); if (view === "peticiones") renderPet();
 }
 store.listeners.push(renderAll);
 
@@ -1400,6 +1457,7 @@ $("#btnSwap").addEventListener("click", () => {
   const s = padE.strokes; padE.set(padR.strokes); padR.set(s); saveDraft(); refreshForm();
 });
 $("#btnGuardar").addEventListener("click", guardar);
+$("#btnQuitarPet").addEventListener("click", () => { setPetOrigen(null); saveDraft(); });
 $("#btnCancelCorr").addEventListener("click", () => { resetForm(); toast("Formulario en blanco."); });
 let limpiarOk = false;
 $("#btnLimpiar").addEventListener("click", e => {
@@ -1508,6 +1566,153 @@ $("#fLogin").addEventListener("submit", async e => {
 });
 $("#btnLogout").addEventListener("click", async () => { $("#mAjustes").hidden = true; try { await store.sb.auth.signOut(); } catch {} toast("Sesión cerrada."); });
 
+/* ---------------- Peticiones de activos ---------------- */
+const PET_ESTADOS = { pendiente: "Pendiente", aprobada: "Aprobada", rechazada: "Rechazada", atendida: "Atendida" };
+const pet = {
+  lista: [], chan: null,
+  async load() {
+    if (store.mode === "supa") {
+      const { data, error } = await store.sb.from("peticiones").select("id,folio,estado,data").order("created_at", { ascending: false }).limit(2000);
+      if (error) { this.lista = []; this.sinTabla = /peticiones|relation|schema cache/i.test(error.message || ""); renderAll(); return; }
+      this.sinTabla = false; this.lista = (data || []).map(r => ({ ...r.data, id: r.id, folio: r.folio, estado: r.estado }));
+    } else if (store.mode === "db") {
+      if (!this._snap) this._snap = store.db.collection("peticiones").onSnapshot(sn => { this.lista = sn.docs.map(d => ({ ...d.data(), id: d.id })); renderAll(); }, () => {});
+      return;
+    } else this.lista = lsGet("actas-peticiones", []);
+    renderAll();
+  },
+  watch() { if (this.chan || store.mode !== "supa") return; try { this.chan = store.sb.channel("peticiones-cambios").on("postgres_changes", { event: "*", schema: "public", table: "peticiones" }, () => this.load()).subscribe(); } catch {} },
+  unwatch() { try { if (this.chan) store.sb.removeChannel(this.chan); } catch {} this.chan = null; },
+  folioLocal() { const y = new Date().getFullYear(), pref = `PET-${y}-`; let max = 0; this.lista.forEach(p => { if (p.folio?.startsWith(pref)) max = Math.max(max, parseInt(p.folio.slice(pref.length), 10) || 0); }); return pref + String(max + 1).padStart(4, "0"); },
+  async crear(p) {
+    p.folio = this.folioLocal();
+    if (store.mode === "supa") {
+      const r = await store.sb.from("peticiones").insert({ id: p.id, folio: p.folio, estado: p.estado, data: p }).select("folio").maybeSingle();
+      if (r.error) throw r.error; if (r.data?.folio) p.folio = r.data.folio;
+    } else if (store.mode === "db") await store.db.collection("peticiones").doc(p.id).set(p);
+    this.lista = this.lista.filter(x => x.id !== p.id).concat(p); if (store.mode === "local") lsSet("actas-peticiones", this.lista);
+    renderAll(); return p;
+  },
+  async cambiar(id, cambios) {
+    const p = this.lista.find(x => x.id === id); if (!p) throw new Error("La petición ya no existe.");
+    const n = { ...p, ...cambios, actualizadaEn: new Date().toISOString() };
+    if (store.mode === "supa") { const { error } = await store.sb.from("peticiones").update({ estado: n.estado, data: n }).eq("id", id); if (error) throw error; }
+    else if (store.mode === "db") await store.db.collection("peticiones").doc(id).set(n);
+    this.lista = this.lista.map(x => x.id === id ? n : x); if (store.mode === "local") lsSet("actas-peticiones", this.lista);
+    renderAll();
+  },
+  async borrar(id) {
+    if (store.mode === "supa") { const { error } = await store.sb.from("peticiones").delete().eq("id", id); if (error) throw error; }
+    else if (store.mode === "db") await store.db.collection("peticiones").doc(id).delete();
+    this.lista = this.lista.filter(x => x.id !== id); if (store.mode === "local") lsSet("actas-peticiones", this.lista);
+    renderAll();
+  },
+};
+const esAdminPet = () => store.mode !== "supa" || !!store.esAdmin || !store.perfil;
+function renderPetCount() {
+  const n = esAdminPet() ? pet.lista.filter(p => p.estado === "pendiente").length : pet.lista.filter(p => p.estado === "pendiente" || p.estado === "aprobada").length;
+  $("#petCount").textContent = n ? n : "";
+}
+let petRechazo = null;
+function petItemRow(it = {}) {
+  const d = document.createElement("div"); d.className = "pitem";
+  d.innerHTML = `<div class="f"><label>Activo solicitado</label><input class="pi-desc" placeholder="Ej. Laptop" value="${esc(it.descripcion || "")}"></div>
+    <div class="f"><label>Cantidad</label><input class="pi-cant" type="number" min="1" inputmode="numeric" value="${esc(it.cantidad || 1)}"></div>
+    <div class="f pdet"><label>Detalle (opcional)</label><input class="pi-det" placeholder="Ej. 16 GB de RAM, con cargador" value="${esc(it.detalle || "")}"></div>
+    <button class="btn sm ghost icon-btn" type="button" title="Quitar" aria-label="Quitar" data-pdel>✕</button>`;
+  return d;
+}
+function abrirFormPet() {
+  $("#petForm").hidden = false; $("#btnPNueva").hidden = true;
+  if (!$("#pNombre").value) $("#pNombre").value = store.perfil?.nombre || "";
+  if (!$("#pItems").children.length) $("#pItems").appendChild(petItemRow());
+  $("#petForm").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function cerrarFormPet(limpiar) {
+  $("#petForm").hidden = true; $("#btnPNueva").hidden = false;
+  if (limpiar) { ["pArea", "pCargo", "pFecha", "pMotivo"].forEach(id => $("#" + id).value = ""); $("#pItems").innerHTML = ""; }
+}
+async function enviarPeticion() {
+  const v = id => $("#" + id).value.trim();
+  $$("#petForm .f").forEach(f => f.classList.remove("err"));
+  if (!v("pNombre")) { $("#pNombre").closest(".f").classList.add("err"); toast("Escribe quién solicita.", true); return $("#pNombre").focus(); }
+  const items = $$("#pItems .pitem").map(r => ({ descripcion: $(".pi-desc", r).value.trim(), cantidad: Math.max(1, parseInt($(".pi-cant", r).value, 10) || 1), detalle: $(".pi-det", r).value.trim() })).filter(i => i.descripcion);
+  if (!items.length) { toast("Agrega al menos un activo con su descripción.", true); return $(".pi-desc")?.focus(); }
+  if (!v("pMotivo")) { $("#pMotivo").closest(".f").classList.add("err"); toast("Escribe el motivo de la petición.", true); return $("#pMotivo").focus(); }
+  const p = { id: uid(), estado: "pendiente", creadaEn: new Date().toISOString(), requeridaPara: v("pFecha"), motivo: v("pMotivo"), items,
+    solicitante: { nombre: v("pNombre"), area: v("pArea"), cargo: v("pCargo"), correo: (store.user?.email || "").toLowerCase() } };
+  const b = $("#btnPEnviar"); b.disabled = true; b.textContent = "Enviando…";
+  try { await pet.crear(p); cerrarFormPet(true); toast(`Petición ${p.folio} enviada.`); }
+  catch (e) { toast("No se pudo enviar la petición: " + (e?.message || e), true); }
+  finally { b.disabled = false; b.textContent = "Enviar petición"; }
+}
+function renderPet() {
+  renderPetCount();
+  const admin = esAdminPet(), el = $("#petList"), q = $("#pq").value.trim().toLowerCase(), fe = $("#pfEstado").value;
+  if (pet.sinTabla) { el.innerHTML = `<div class="empty">Falta activar las peticiones en la base de datos (archivo 5 de Supabase).</div>`; return; }
+  const rows = pet.lista.filter(p => (!fe || p.estado === fe) && (!q || [p.folio, p.solicitante?.nombre, p.solicitante?.area, p.motivo, ...(p.items || []).map(i => i.descripcion + " " + (i.detalle || ""))].join(" ").toLowerCase().includes(q)))
+    .sort((a, b) => (a.estado === "pendiente" ? 0 : 1) - (b.estado === "pendiente" ? 0 : 1) || (b.creadaEn || "").localeCompare(a.creadaEn || ""));
+  if (!pet.lista.length) { el.innerHTML = `<div class="sec zero"><h3>Aún no hay peticiones</h3><p class="hint">Cuando alguien pida activos, la petición aparecerá aquí.</p></div>`; return; }
+  if (!rows.length) { el.innerHTML = `<div class="empty">Ninguna petición coincide con la búsqueda.</div>`; return; }
+  const mio = p => (p.solicitante?.correo || "") === (store.user?.email || "").toLowerCase();
+  el.innerHTML = rows.map(p => {
+    const acts = [];
+    if (admin && (p.estado === "pendiente" || p.estado === "aprobada")) {
+      if (p.estado === "pendiente") acts.push(`<button class="btn sm primary" data-pact="aprobar" data-pid="${esc(p.id)}">Aprobar</button>`);
+      acts.push(`<button class="btn sm" data-pact="acta" data-pid="${esc(p.id)}">Crear acta de entrega</button>`);
+      if (p.estado === "aprobada") acts.push(`<button class="btn sm" data-pact="atendida" data-pid="${esc(p.id)}">Marcar atendida</button>`);
+      acts.push(`<button class="btn sm danger" data-pact="rechazar" data-pid="${esc(p.id)}">Rechazar</button>`);
+    }
+    if (p.estado === "pendiente" && (mio(p) || (admin && store.mode !== "supa"))) acts.push(`<button class="btn sm ghost" data-pact="cancelar" data-pid="${esc(p.id)}">Cancelar petición</button>`);
+    const rech = petRechazo === p.id ? `<div class="confirm"><div class="f"><label for="pRechazo">Motivo del rechazo (opcional)</label><textarea id="pRechazo"></textarea></div>
+      <div class="row"><button class="btn danger solid sm" data-pact="rechazarOk" data-pid="${esc(p.id)}">Confirmar rechazo</button><button class="btn sm" data-pact="volver" data-pid="${esc(p.id)}">Volver</button></div></div>` : "";
+    return `<div class="pcard">
+      <div class="ph"><b class="mono">${esc(p.folio)}</b><span class="pill ${esc(p.estado)}">${esc(PET_ESTADOS[p.estado] || p.estado)}</span><span class="when">${esc(fmtFecha(p.creadaEn))}</span></div>
+      <div class="hint" style="margin:0">Solicitado por ${esc([p.solicitante?.nombre, p.solicitante?.cargo, p.solicitante?.area].filter(Boolean).join(" · "))}</div>
+      <ul>${(p.items || []).map(i => `<li><b>${esc(i.cantidad)} ×</b> ${esc(i.descripcion)}${i.detalle ? ` <span class="hint">(${esc(i.detalle)})</span>` : ""}</li>`).join("")}</ul>
+      <div class="kv" style="margin:0"><div><span>Motivo / justificación</span><b style="font-weight:500;white-space:pre-wrap">${esc(p.motivo || "—")}</b></div>${p.requeridaPara ? `<div><span>Necesario para</span><b>${esc(new Date(p.requeridaPara + "T12:00").toLocaleDateString(LOCALE()))}</b></div>` : ""}</div>
+      ${p.respuesta ? `<div class="tip" style="margin:0;padding:10px 12px;border-radius:8px;background:var(--danger-soft)"><span class="lbl">Respuesta del administrador</span><div>${esc(p.respuesta)}</div></div>` : ""}
+      ${p.actaFolio ? `<div><button class="linkbtn" data-open="${esc(p.actaId)}">Atendida con el acta ${esc(p.actaFolio)}</button></div>` : ""}
+      ${acts.length ? `<div class="acts">${acts.join("")}</div>` : ""}${rech}
+    </div>`;
+  }).join("");
+}
+function actaDesdePeticion(p) {
+  const hayDatos = assets.length || $("#eNombre").value || $("#rNombre").value;
+  if (hayDatos && !actaDesdePeticion._ok) { actaDesdePeticion._ok = true; toast("El formulario tiene datos sin guardar. Pulsa de nuevo para reemplazarlos.", true); setTimeout(() => actaDesdePeticion._ok = false, 4000); return; }
+  actaDesdePeticion._ok = false;
+  resetForm();
+  $("#tipo-entrega").checked = true;
+  $("#eNombre").value = store.perfil?.nombre || "";
+  $("#rNombre").value = p.solicitante?.nombre || ""; $("#rArea").value = p.solicitante?.area || ""; $("#rCargo").value = p.solicitante?.cargo || "";
+  if (store.mode === "supa" && p.solicitante?.correo) $("#rCorreo").value = p.solicitante.correo;
+  $("#obs").value = `Atiende la petición ${p.folio}.` + (p.motivo ? ` Motivo: ${p.motivo}` : "");
+  assets = (p.items || []).map(i => ({ codigo: "", descripcion: i.descripcion, marca: "", modelo: "", serie: "", estado: "Nuevo", cantidad: i.cantidad || 1, observacion: i.detalle || "" }));
+  setPetOrigen(p); saveDraft(); setView("nueva"); refreshForm();
+  toast(`Entrega con ${assets.length} ${assets.length === 1 ? "activo" : "activos"} de la petición ${p.folio}. Completa y firma.`);
+}
+document.addEventListener("click", async e => {
+  if (e.target.closest("[data-pdel]")) { const r = e.target.closest(".pitem"); if ($$("#pItems .pitem").length > 1) r.remove(); else $$("input", r).forEach(i => i.value = i.type === "number" ? 1 : ""); return; }
+  const b = e.target.closest("[data-pact]"); if (!b) return;
+  const id = b.dataset.pid, p = pet.lista.find(x => x.id === id), a = b.dataset.pact; if (!p) return;
+  if (a === "rechazar") { petRechazo = id; renderPet(); setTimeout(() => $("#pRechazo")?.focus(), 30); return; }
+  if (a === "volver") { petRechazo = null; renderPet(); return; }
+  if (a === "acta") { actaDesdePeticion(p); return; }
+  b.disabled = true;
+  try {
+    if (a === "aprobar") await pet.cambiar(id, { estado: "aprobada", revisadaPor: store.perfil?.nombre || store.user?.email || "", revisadaEn: new Date().toISOString() });
+    if (a === "atendida") await pet.cambiar(id, { estado: "atendida", atendidaEn: new Date().toISOString(), atendidaPor: store.perfil?.nombre || store.user?.email || "" });
+    if (a === "rechazarOk") { await pet.cambiar(id, { estado: "rechazada", respuesta: $("#pRechazo")?.value.trim() || "", revisadaPor: store.perfil?.nombre || store.user?.email || "", revisadaEn: new Date().toISOString() }); petRechazo = null; }
+    if (a === "cancelar") { await pet.borrar(id); toast("Petición cancelada."); return; }
+    toast("Petición actualizada.");
+  } catch (x) { toast("No se pudo actualizar la petición: " + (x?.message || x), true); b.disabled = false; }
+});
+$("#btnPNueva").addEventListener("click", abrirFormPet);
+$("#btnPCancelar").addEventListener("click", () => cerrarFormPet(false));
+$("#btnPItem").addEventListener("click", () => { const r = petItemRow(); $("#pItems").appendChild(r); $(".pi-desc", r).focus(); });
+$("#btnPEnviar").addEventListener("click", enviarPeticion);
+$("#pq").addEventListener("input", renderPet); $("#pfEstado").addEventListener("change", renderPet);
+
 /* ---------------- Guía de uso ---------------- */
 const GUIA = [
   { id: "registro", supa: true, who: ["Todos", "Everyone"], t: ["Crear tu cuenta", "Create your account"], pasos: [
@@ -1528,6 +1733,14 @@ const GUIA = [
     ["Para corregir: <b>Historial</b>, abre el acta y pulsa <b>Corregir acta</b>. Si cambias los activos de un acta ya firmada, quien recibe debe firmar de nuevo.", "To correct: <b>History</b>, open the record and tap <b>Correct record</b>. If you change the assets of a signed record, the recipient must sign again.", "admin"],
     ["Revisa bien antes de guardar: una vez guardada, <b>solo el administrador</b> puede corregir o borrar el acta. Si encuentras un error, avísale.", "Check carefully before saving: once saved, <b>only the administrator</b> can correct or delete the record. If you find a mistake, let them know.", "user"],
   ], tip: ["Mientras llenas el acta, todo se guarda solo como borrador en este dispositivo.", "While you fill in the record, everything is saved automatically as a draft on this device."] },
+  { id: "pedir", who: ["Todos", "Everyone"], t: ["Pedir activos", "Request assets"], pasos: [
+    ["Entra a la pestaña <b>Peticiones</b> y pulsa <b>+ Nueva petición</b>.", "Go to the <b>Requests</b> tab and tap <b>+ New request</b>."],
+    ["Revisa tu nombre, y escribe tu área, tu cargo y la fecha en que necesitas los activos.", "Check your name, and enter your area, position and the date you need the assets."],
+    ["Escribe cada activo que necesitas con su cantidad y, si quieres, un detalle. Usa <b>+ Agregar otro activo</b> para pedir varios.", "Enter each asset you need with its quantity and, optionally, a detail. Use <b>+ Add another asset</b> to request several."],
+    ["Explica el <b>motivo</b> y pulsa <b>Enviar petición</b>. Recibe un folio <b>PET-…</b> y queda como <b>Pendiente</b>.", "Explain the <b>reason</b> and tap <b>Submit request</b>. It gets a <b>PET-…</b> number and shows as <b>Pending</b>."],
+    ["El administrador la <b>aprueba</b> o la <b>rechaza</b>. Cuando te entrega los activos, la petición pasa a <b>Atendida</b> y muestra el acta de entrega.", "The administrator <b>approves</b> or <b>rejects</b> it. When the assets are handed over, the request becomes <b>Fulfilled</b> and shows the handover record."],
+    ["Administrador: en una petición, pulsa <b>Crear acta de entrega</b>. El acta se llena sola con la persona y los activos pedidos: completa códigos y series, firma y guarda.", "Administrator: on a request, tap <b>Create handover record</b>. The record is pre-filled with the person and requested assets: complete codes and serials, sign and save.", "admin"],
+  ], tip: ["Mientras la petición esté Pendiente puedes cancelarla.", "While the request is Pending you can cancel it."] },
   { id: "firmar", supa: true, who: ["Quien recibe", "Recipient"], t: ["Firmar un acta como conforme", "Sign a record as received"], pasos: [
     ["Inicia sesión con tu correo y contraseña.", "Sign in with your email and password."],
     ["En <b>Historial</b> verás tus actas. Las que dicen <b>“Pendiente de firma”</b> esperan tu firma.", "In <b>History</b> you will see your records. Those marked <b>“Pending signature”</b> are waiting for you."],
@@ -1574,7 +1787,7 @@ if (draft) loadDraft(draft);
 let _pendEdit = editando?.pendiente ? editando.id : null; editando = null;
 if (!$("#fecha").value) $("#fecha").value = localISO();
 const h = (location.hash || "").slice(1);
-setView(h === "historial" ? "historial" : "nueva");
+setView(h === "historial" ? "historial" : h === "peticiones" ? "peticiones" : "nueva");
 refreshForm();
 store.listeners.push(() => {
   if (_pendEdit && !editando) { const a = store.actas.find(x => x.id === _pendEdit); if (a && puedeEditar()) { _pendEdit = null; setEditando(a); refreshForm(); } }

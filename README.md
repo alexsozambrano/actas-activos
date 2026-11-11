@@ -11,5 +11,6 @@ Micro-app para crear actas de entrega, recepción, devolución y traslado de act
   2. `2-registro-usuarios.sql`: registro de usuarios con aprobación del administrador.
   3. `3-permisos-firma.sql`: firma "conforme" de quien recibe (ve solo las actas con su correo).
   4. `4-usuarios-crean-actas.sql`: los usuarios aprobados pueden crear actas; corregir y borrar es solo del administrador. El folio lo asigna el servidor.
+  5. `5-peticiones.sql`: peticiones de activos (folio PET); los usuarios piden y el administrador aprueba, rechaza o crea el acta de entrega.
 
 Netlify publica la carpeta raíz automáticamente con cada cambio en la rama principal.
