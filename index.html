@@ -76,6 +76,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 .f label,.lbl{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .f input,.f select,.f textarea{border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:10px 12px;width:100%;min-width:0;font-size:16px}
 .f textarea{min-height:72px;resize:vertical}
+.f{min-width:0}
+.f input[type=datetime-local]{-webkit-appearance:none;appearance:none;display:block;max-width:100%;min-height:46px;text-align:left}
+.f input[type=datetime-local]::-webkit-date-and-time-value{text-align:left}
 .f input:focus,.f select:focus,.f textarea:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
 .f.req label::after{content:" *";color:var(--danger)}
 .f.err input{border-color:var(--danger)}
