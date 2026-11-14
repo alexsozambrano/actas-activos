@@ -217,6 +217,12 @@ html.netlify .toast{bottom:calc(150px + env(safe-area-inset-bottom, 0px))!import
 .pcard ul{margin:0;padding-left:18px;font-size:14px}.pcard .acts{display:flex;gap:6px;flex-wrap:wrap}
 .pitem{display:grid;grid-template-columns:1fr 90px 1fr auto;gap:8px;align-items:end}
 @media (max-width:640px){.pitem{grid-template-columns:1fr 80px auto}.pitem .pdet{grid-column:1/-1;order:5}}
+.pill.abierto{background:var(--danger-soft);color:var(--danger)}.pill.revision{background:var(--accent-soft);color:var(--accent)}.pill.resuelto{background:var(--ok-soft);color:var(--ok)}.pill.rechazado{background:var(--danger-soft);color:var(--danger)}
+.fotos{display:flex;gap:8px;flex-wrap:wrap}
+.fotos .ft{position:relative;width:92px;height:92px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:#000;padding:0;cursor:zoom-in}
+.fotos .ft img{width:100%;height:100%;object-fit:cover;display:block}
+.fotos .ft .x{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;font-size:13px;cursor:pointer;display:grid;place-items:center}
+#mImg{z-index:31}#mImg .sheet{max-width:900px}#mImg img{width:100%;height:auto;border-radius:8px;background:#000}
 .confirm{border:1px solid var(--danger);background:var(--danger-soft);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
 
 /* Modales y avisos */
@@ -253,6 +259,7 @@ html.netlify .toast{bottom:calc(150px + env(safe-area-inset-bottom, 0px))!import
       <button class="tab" role="tab" id="tabNueva" data-view="nueva" aria-selected="true">Nueva acta</button>
       <button class="tab" role="tab" id="tabHist" data-view="historial" aria-selected="false">Historial <span class="count" id="histCount">0</span></button>
       <button class="tab" role="tab" id="tabPet" data-view="peticiones" aria-selected="false">Peticiones <span class="count" id="petCount"></span></button>
+      <button class="tab" role="tab" id="tabRcl" data-view="reclamos" aria-selected="false">Reclamos <span class="count" id="rclCount"></span></button>
       <button class="tab" role="tab" id="tabUsers" data-view="usuarios" aria-selected="false" hidden>Usuarios <span class="count" id="usersCount"></span></button>
     </nav>
   </header>
@@ -376,6 +383,38 @@ html.netlify .toast{bottom:calc(150px + env(safe-area-inset-bottom, 0px))!import
     <div class="list" id="petList"></div>
   </main>
 
+  <!-- ============ RECLAMOS ============ -->
+  <main id="vRcl" class="stack" hidden>
+    <div class="row" style="justify-content:space-between"><p class="hint" style="margin:0">Reporta los activos que se deterioren o dañen durante su uso. Toma una foto del activo en el momento: el reclamo queda vinculado a su acta.</p><button class="btn primary" id="btnRNuevo">+ Nuevo reclamo</button></div>
+    <section class="sec" id="rclForm" hidden>
+      <div class="sec-h"><h2>Reportar daño o deterioro</h2><span class="hint">Folio <b class="mono">Se asigna al enviar</b></span></div>
+      <div class="grid two">
+        <div class="f req"><label for="rActa">Acta</label><select id="rActa"></select></div>
+        <div class="f req"><label for="rActivo">Activo afectado</label><select id="rActivo"></select></div>
+        <div class="f req"><label for="rTipo">Tipo de problema</label><select id="rTipo"><option value="Deterioro por uso">Deterioro por uso</option><option value="Daño">Daño</option><option value="Falla de funcionamiento">Falla de funcionamiento</option><option value="Faltante o pérdida">Faltante o pérdida</option><option value="Otro">Otro</option></select></div>
+        <div class="f req"><label for="rFecha">Fecha y hora del incidente</label><input id="rFecha" type="datetime-local"></div>
+      </div>
+      <div class="f req"><label for="rDesc">¿Qué pasó?</label><textarea id="rDesc" placeholder="Describe el daño, cuándo lo notaste y cómo afecta el uso del activo…"></textarea></div>
+      <div class="f req"><span class="lbl">Fotos del activo</span>
+        <div class="row" style="gap:8px">
+          <button class="btn primary" type="button" id="btnRFoto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Tomar foto</button>
+          <button class="btn" type="button" id="btnRVivo">Cámara en vivo</button>
+          <button class="btn ghost" type="button" id="btnRGal">Subir de la galería</button>
+        </div>
+        <input type="file" id="rFotoCam" accept="image/*" capture="environment" hidden>
+        <input type="file" id="rFotoGal" accept="image/*" multiple hidden>
+        <span class="hint">Hasta 4 fotos. Cada foto lleva la fecha y la hora en que se tomó.</span>
+        <div class="fotos" id="rFotos"></div>
+      </div>
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" id="btnRCancelar">Cancelar</button><button class="btn primary" id="btnREnviar">Enviar reclamo</button></div>
+    </section>
+    <div class="filters">
+      <div class="f search"><label for="rq" class="lbl">Buscar</label><input id="rq" placeholder="Folio, acta, activo o persona" autocomplete="off"></div>
+      <div class="f"><label for="rfEstado">Estado</label><select id="rfEstado"><option value="">Todos</option><option value="abierto">Abierto</option><option value="revision">En revisión</option><option value="resuelto">Resuelto</option><option value="rechazado">Rechazado</option></select></div>
+    </div>
+    <div class="list" id="rclList"></div>
+  </main>
+
   <!-- ============ USUARIOS ============ -->
   <main id="vUsers" class="stack" hidden>
     <section class="sec">
@@ -394,6 +433,18 @@ html.netlify .toast{bottom:calc(150px + env(safe-area-inset-bottom, 0px))!import
     <div class="sum" id="barSum"><b id="barTipo">Entrega</b> · <span id="barN">0 activos</span> · <span id="barF">0/2 firmas</span></div>
     <button class="btn primary" id="btnGuardar">Guardar acta</button>
   </div>
+</div>
+
+<div class="modal" id="mFoto" hidden>
+  <div class="sheet">
+    <div class="sec-h"><h2 style="font-size:17px">Foto del activo</h2><button class="btn sm" id="btnCerrarFoto">Cerrar</button></div>
+    <div class="video"><video id="fotoVideo" playsinline muted></video></div>
+    <p class="hint" id="fotoMsg">Encuadra el daño y pulsa Capturar.</p>
+    <div class="row" style="justify-content:flex-end"><button class="btn primary" id="btnCapturar">Capturar</button></div>
+  </div>
+</div>
+<div class="modal" id="mImg" hidden>
+  <div class="sheet"><div class="sec-h"><h2 style="font-size:17px" id="imgTitle">Foto</h2><button class="btn sm" id="btnCerrarImg">Cerrar</button></div><img id="imgFull" alt="Foto del reclamo"></div>
 </div>
 
 <div class="modal" id="mVivo" hidden>
@@ -558,6 +609,21 @@ const D = {
   "Esta acta ya fue firmada por quien recibe. Como cambiaste los activos, su firma se quitó y tendrá que volver a firmar.": "This record had already been signed by the recipient. Because you changed the assets, their signature was removed and they will need to sign again.",
   "Recibido conforme": "Received in good order", "Esperando la firma de quien recibe": "Waiting for the recipient's signature",
   "Correo no válido.": "Invalid email.",
+  "Reclamos": "Claims", "+ Nuevo reclamo": "+ New claim", "Reportar daño o deterioro": "Report damage or wear",
+  "Reporta los activos que se deterioren o dañen durante su uso. Toma una foto del activo en el momento: el reclamo queda vinculado a su acta.": "Report assets that wear out or get damaged during use. Take a photo of the asset on the spot: the claim is linked to its record.",
+  "Acta": "Record", "Activo afectado": "Affected asset", "Tipo de problema": "Problem type", "Deterioro por uso": "Wear from use", "Daño": "Damage", "Falla de funcionamiento": "Malfunction", "Faltante o pérdida": "Missing or lost", "Otro": "Other",
+  "Fecha y hora del incidente": "Date and time of the incident", "¿Qué pasó?": "What happened?", "Describe el daño, cuándo lo notaste y cómo afecta el uso del activo…": "Describe the damage, when you noticed it and how it affects use of the asset…",
+  "Fotos del activo": "Photos of the asset", "Tomar foto": "Take photo", "Subir de la galería": "Upload from gallery", "Hasta 4 fotos. Cada foto lleva la fecha y la hora en que se tomó.": "Up to 4 photos. Each photo is stamped with the date and time it was taken.",
+  "Enviar reclamo": "Submit claim", "Folio, acta, activo o persona": "Number, record, asset or person", "Abierto": "Open", "En revisión": "Under review", "Resuelto": "Resolved", "Rechazado": "Rejected",
+  "Foto del activo": "Photo of the asset", "Encuadra el daño y pulsa Capturar.": "Frame the damage and tap Capture.", "Capturar": "Capture", "Foto": "Photo",
+  "Elige el acta.": "Choose the record.", "Elige el activo afectado.": "Choose the affected asset.", "Describe qué pasó.": "Describe what happened.", "Agrega al menos una foto del activo.": "Add at least one photo of the asset.",
+  "Máximo 4 fotos.": "Maximum 4 photos.", "Procesando foto…": "Processing photo…", "Reclamo actualizado.": "Claim updated.", "Reclamo cancelado.": "Claim cancelled.",
+  "Pasar a revisión": "Move to review", "Resolver": "Resolve", "Cancelar reclamo": "Cancel claim", "Confirmar": "Confirm", "Respuesta (opcional)": "Reply (optional)",
+  "Aún no hay reclamos": "No claims yet", "Cuando alguien reporte un activo dañado, el reclamo aparecerá aquí.": "When someone reports a damaged asset, the claim will appear here.",
+  "Ninguna reclamo coincide con la búsqueda.": "No claim matches the search.", "Reportar daño": "Report damage", "Todo el acta / varios activos": "Whole record / several assets",
+  "No tienes actas disponibles. Solo puedes reportar activos de actas que puedes ver.": "You have no records available. You can only report assets from records you can see.",
+  "Falta activar los reclamos en la base de datos (archivo 6 de Supabase).": "Claims are not enabled in the database yet (Supabase file 6).",
+  "No se pudo abrir la cámara en vivo. Usa Tomar foto.": "Could not open the live camera. Use Take photo.", "Abriendo cámara…": "Opening camera…",
   "Peticiones": "Requests", "Petición": "Request", "Falta activar las peticiones en la base de datos (archivo 5 de Supabase).": "Requests are not enabled in the database yet (Supabase file 5).", "Pide los activos que necesitas. El administrador revisa cada petición y entrega los activos con un acta.": "Request the assets you need. The administrator reviews each request and hands over the assets with a record.",
   "+ Nueva petición": "+ New request", "Nueva petición de activos": "New asset request", "Se asigna al enviar": "Assigned on submit", "Solicitante": "Requester",
   "Fecha en que lo necesitas": "Date needed", "Motivo / justificación": "Reason / justification", "Ej. Ingreso de nuevo personal, reemplazo de equipo dañado…": "E.g. New staff, replacing damaged equipment…",
@@ -596,7 +662,9 @@ const PAT = [
   [/^Nueva (\S+) con (\d+) activos de (.+)\. Revisa y firma\.$/, (m, t, n, f) => `New ${(D[t[0].toUpperCase() + t.slice(1)] || t).toLowerCase()} with ${n} assets from ${f}. Review and sign.`],
   [/^¿Eliminar el acta (.+)\?$/, "Delete record $1?"],
   [/^Acta (.+) corregida\.$/, "Record $1 corrected."],
-  [/^Petición (.+) enviada\.$/, "Request $1 submitted."], [/^Atendida con el acta (.+)$/, "Fulfilled with record $1"], [/^No se pudo (enviar|actualizar) la petición: (.*)$/s, (m, v, e) => `Could not ${v === "enviar" ? "submit" : "update"} the request: ${e}`],
+  [/^Petición (.+) enviada\.$/, "Request $1 submitted."],
+  [/^Reclamo (.+) enviado\.$/, "Claim $1 submitted."], [/^Reportado por (.*)$/s, "Reported by $1"], [/^Ver fotos \((\d+)\)$/, "See photos ($1)"], [/^Reclamos de esta acta \((\d+)\)$/, "Claims for this record ($1)"],
+  [/^No se pudo (enviar|actualizar) el reclamo: (.*)$/s, (m, v, e) => `Could not ${v === "enviar" ? "submit" : "update"} the claim: ${e}`], [/^Respuesta: (.*)$/s, "Reply: $1"], [/^Acta (\S+) · (.*)$/s, "Record $1 · $2"], [/^Atendida con el acta (.+)$/, "Fulfilled with record $1"], [/^No se pudo (enviar|actualizar) la petición: (.*)$/s, (m, v, e) => `Could not ${v === "enviar" ? "submit" : "update"} the request: ${e}`],
   [/^Entrega con (\d+) activos? de la petición (.+)\. Completa y firma\.$/, "Handover with $1 assets from request $2. Complete and sign."], [/^Solicitado por (.*)$/s, "Requested by $1"], [/^Acta (.+) guardada\. Quedó pendiente de la firma de (.+)\.$/s, "Record $1 saved. Waiting for $2 to sign."],
   [/^No se pudo firmar: (.*)$/s, "Could not sign: $1"], [/^Recibido conforme · (.*)$/s, "Received in good order · $1"], [/^Esperando la firma de quien recibe · (.*)$/s, "Waiting for the recipient's signature · $1"],
   [/^Activos \((\d+)\)$/, "Assets ($1)"],
@@ -680,13 +748,13 @@ const store = {
         this.actas = snap.docs.map(d => ({ ...d.data(), id: d.id }));
         setSync("Sincronizado", true); this.emit();
       }, e => { clearTimeout(timer); setSync("Error de conexión", false); toast("Error al leer el historial: " + (e && e.message || e), true); });
-      pet.load();
+      pet.load(); rcl.load();
       db.doc("config/general").onSnapshot(s => { if (s.exists) { this.config = { ...this.config, ...s.data() }; this.emit(); } }, () => {});
     } else if (window.supabase && window.ACTAS_SUPABASE && window.ACTAS_SUPABASE.url && window.ACTAS_SUPABASE.key) {
       await this.supaInit();
     } else {
       this.mode = "local";
-      this.actas = lsGet("actas-local", []); pet.load();
+      this.actas = lsGet("actas-local", []); pet.load(); rcl.load();
       setSync("Guardado en este dispositivo", false);
       this.emit();
     }
@@ -696,7 +764,7 @@ const store = {
     const c = window.ACTAS_SUPABASE; this.mode = "supa";
     this.sb = window.supabase.createClient(c.url, c.key, { auth: { persistSession: true, autoRefreshToken: true } });
     this.sb.auth.onAuthStateChange((ev, session) => {
-      if (ev === "SIGNED_OUT") { this.user = null; this.perfil = null; this.esAdmin = false; pet.lista = []; pet.unwatch(); aplicarRol(); this.usuarios = []; this.actas = []; $("#tabUsers").hidden = true; try { if (this.chanP) this.sb.removeChannel(this.chanP); } catch {} this.chanP = null; hidePending(); if (view === "usuarios") setView("nueva"); this.emit(); this.stopRealtime(); showLogin(); }
+      if (ev === "SIGNED_OUT") { this.user = null; this.perfil = null; this.esAdmin = false; pet.lista = []; pet.unwatch(); rcl.lista = []; rcl.unwatch(); aplicarRol(); this.usuarios = []; this.actas = []; $("#tabUsers").hidden = true; try { if (this.chanP) this.sb.removeChannel(this.chanP); } catch {} this.chanP = null; hidePending(); if (view === "usuarios") setView("nueva"); this.emit(); this.stopRealtime(); showLogin(); }
     });
     let session = null;
     try { session = (await this.sb.auth.getSession()).data.session; } catch {}
@@ -720,7 +788,7 @@ const store = {
     aplicarRol();
     if (this.esAdmin) this.loadUsers();
     await this.supaLoad();
-    pet.load(); pet.watch();
+    pet.load(); pet.watch(); rcl.load(); rcl.watch();
     this.stopRealtime();
     try {
       this.chan = this.sb.channel("actas-cambios")
@@ -1351,6 +1419,7 @@ function renderDetail() {
       <label class="conf"><input type="checkbox" id="chkConf"><span>Declaro que recibí los activos descritos en esta acta, en el estado indicado, y estoy conforme.</span></label>
       <div class="row" style="justify-content:flex-end"><button class="btn primary" id="btnFirmarC">Firmar como conforme</button></div>
     </section>` : ""}
+    ${rclSeccionActa(a)}
     <section class="sec"><h2 style="font-size:16px">Crear acta a partir de esta</h2>
       <p class="hint">Copia los activos y las personas a una nueva acta. En una devolución se invierten quien entrega y quien recibe.</p>
       <div class="row">
@@ -1406,10 +1475,10 @@ function desdeActa(a, tipo) {
 let view = "nueva";
 function setView(v) {
   view = v;
-  $("#vNueva").hidden = v !== "nueva"; $("#vHist").hidden = v !== "historial"; $("#vDet").hidden = v !== "detalle"; $("#vUsers").hidden = v !== "usuarios"; $("#vPet").hidden = v !== "peticiones"; $("#tabPet").setAttribute("aria-selected", v === "peticiones"); $("#bar").hidden = v !== "nueva";
+  $("#vNueva").hidden = v !== "nueva"; $("#vHist").hidden = v !== "historial"; $("#vDet").hidden = v !== "detalle"; $("#vUsers").hidden = v !== "usuarios"; $("#vPet").hidden = v !== "peticiones"; $("#vRcl").hidden = v !== "reclamos"; $("#tabRcl").setAttribute("aria-selected", v === "reclamos"); $("#tabPet").setAttribute("aria-selected", v === "peticiones"); $("#bar").hidden = v !== "nueva";
   $("#tabNueva").setAttribute("aria-selected", v === "nueva"); $("#tabHist").setAttribute("aria-selected", v === "historial" || v === "detalle"); $("#tabUsers").setAttribute("aria-selected", v === "usuarios");
   document.body.style.paddingBottom = v === "nueva" ? "" : (document.documentElement.classList.contains("netlify") ? "84px" : "32px");
-  if (v === "historial") renderHist(); if (v === "detalle") renderDetail(); if (v === "usuarios") { renderUsers(); store.loadUsers?.(); } if (v === "peticiones") renderPet(); if (v === "nueva") requestAnimationFrame(() => { padE.resize(); padR.resize(); });
+  if (v === "historial") renderHist(); if (v === "detalle") renderDetail(); if (v === "usuarios") { renderUsers(); store.loadUsers?.(); } if (v === "peticiones") renderPet(); if (v === "reclamos") renderRcl(); if (v === "nueva") requestAnimationFrame(() => { padE.resize(); padR.resize(); });
   window.scrollTo({ top: 0 });
   try { const h = v === "detalle" ? "" : "#" + v; if (location.hash !== h && h) history.replaceState(null, "", h); } catch {}
 }
@@ -1422,6 +1491,7 @@ function renderAll() {
   refreshForm();
   if (view === "historial") renderHist(); if (view === "detalle") renderDetail();
   renderPetCount(); if (view === "peticiones") renderPet();
+  renderRclCount(); if (view === "reclamos") renderRcl();
 }
 store.listeners.push(renderAll);
 
@@ -1713,6 +1783,201 @@ $("#btnPItem").addEventListener("click", () => { const r = petItemRow(); $("#pIt
 $("#btnPEnviar").addEventListener("click", enviarPeticion);
 $("#pq").addEventListener("input", renderPet); $("#pfEstado").addEventListener("change", renderPet);
 
+/* ---------------- Reclamos (daños y deterioros) ---------------- */
+const RCL_ESTADOS = { abierto: "Abierto", revision: "En revisión", resuelto: "Resuelto", rechazado: "Rechazado" };
+const rcl = {
+  lista: [], chan: null, fotosCache: {},
+  async load() {
+    if (store.mode === "supa") {
+      const { data, error } = await store.sb.from("reclamos").select("id,folio,estado,acta_id,data").order("created_at", { ascending: false }).limit(2000);
+      if (error) { this.lista = []; this.sinTabla = /reclamos|relation|schema cache/i.test(error.message || ""); renderAll(); return; }
+      this.sinTabla = false; this.lista = (data || []).map(r => ({ ...r.data, id: r.id, folio: r.folio, estado: r.estado, actaId: r.acta_id }));
+    } else if (store.mode === "db") {
+      if (!this._snap) this._snap = store.db.collection("reclamos").onSnapshot(sn => { this.lista = sn.docs.map(d => ({ ...d.data(), id: d.id })); renderAll(); }, () => {});
+      return;
+    } else this.lista = lsGet("actas-reclamos", []);
+    renderAll();
+  },
+  watch() { if (this.chan || store.mode !== "supa") return; try { this.chan = store.sb.channel("reclamos-cambios").on("postgres_changes", { event: "*", schema: "public", table: "reclamos" }, () => this.load()).subscribe(); } catch {} },
+  unwatch() { try { if (this.chan) store.sb.removeChannel(this.chan); } catch {} this.chan = null; },
+  folioLocal() { const y = new Date().getFullYear(), pref = `RCL-${y}-`; let max = 0; this.lista.forEach(p => { if (p.folio?.startsWith(pref)) max = Math.max(max, parseInt(p.folio.slice(pref.length), 10) || 0); }); return pref + String(max + 1).padStart(4, "0"); },
+  async fotos(r) {
+    if (r.fotos) return r.fotos; if (this.fotosCache[r.id]) return this.fotosCache[r.id];
+    if (store.mode !== "supa") return [];
+    const { data, error } = await store.sb.from("reclamos").select("fotos").eq("id", r.id).maybeSingle();
+    if (error) throw error; return (this.fotosCache[r.id] = data?.fotos || []);
+  },
+  async crear(r, fotos) {
+    r.folio = this.folioLocal(); r.nFotos = fotos.length;
+    if (store.mode === "supa") {
+      const res = await store.sb.from("reclamos").insert({ id: r.id, folio: r.folio, estado: r.estado, acta_id: r.actaId, data: r, fotos }).select("folio").maybeSingle();
+      if (res.error) throw res.error; if (res.data?.folio) r.folio = res.data.folio; this.fotosCache[r.id] = fotos;
+    } else { r.fotos = fotos; if (store.mode === "db") await store.db.collection("reclamos").doc(r.id).set(r); }
+    this.lista = this.lista.filter(x => x.id !== r.id).concat(r); if (store.mode === "local") lsSet("actas-reclamos", this.lista);
+    renderAll(); return r;
+  },
+  async cambiar(id, cambios) {
+    const r = this.lista.find(x => x.id === id); if (!r) throw new Error("El reclamo ya no existe.");
+    const n = { ...r, ...cambios, actualizadoEn: new Date().toISOString() };
+    if (store.mode === "supa") { const d = { ...n }; delete d.fotos; const { error } = await store.sb.from("reclamos").update({ estado: n.estado, data: d }).eq("id", id); if (error) throw error; }
+    else if (store.mode === "db") await store.db.collection("reclamos").doc(id).set(n);
+    this.lista = this.lista.map(x => x.id === id ? n : x); if (store.mode === "local") lsSet("actas-reclamos", this.lista);
+    renderAll();
+  },
+  async borrar(id) {
+    if (store.mode === "supa") { const { error } = await store.sb.from("reclamos").delete().eq("id", id); if (error) throw error; }
+    else if (store.mode === "db") await store.db.collection("reclamos").doc(id).delete();
+    this.lista = this.lista.filter(x => x.id !== id); if (store.mode === "local") lsSet("actas-reclamos", this.lista);
+    renderAll();
+  },
+};
+const esAdminRcl = () => store.mode !== "supa" || !!store.esAdmin || !store.perfil;
+function renderRclCount() { const n = rcl.lista.filter(r => r.estado === "abierto" || r.estado === "revision").length; $("#rclCount").textContent = n ? n : ""; }
+let rclFotos = [], rclResp = null, fotoStream = null;
+const rclVerFotos = new Set();
+// Foto: se reduce a 1280 px, JPEG, y se le estampa la fecha y hora de captura
+function fotoDesde(src, w, h) {
+  const k = Math.min(1, 1280 / Math.max(w, h)), W = Math.round(w * k), H = Math.round(h * k);
+  const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d"); x.drawImage(src, 0, 0, W, H);
+  const txt = new Date().toLocaleString(LOCALE(), { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }) + " · " + (store.perfil?.nombre || store.user?.email || tr("Actas de Activos"));
+  const fs = Math.max(14, Math.round(W / 40)); x.font = `600 ${fs}px system-ui, sans-serif`;
+  const tw = x.measureText(txt).width; x.fillStyle = "rgba(0,0,0,.6)"; x.fillRect(0, H - fs * 1.9, Math.min(W, tw + fs * 1.4), fs * 1.9);
+  x.fillStyle = "#fff"; x.fillText(txt, fs * .7, H - fs * .6);
+  return c.toDataURL("image/jpeg", 0.72);
+}
+function leerFoto(file) {
+  return new Promise((ok, ko) => { const u = URL.createObjectURL(file); const i = new Image(); i.onload = () => { try { ok(fotoDesde(i, i.naturalWidth, i.naturalHeight)); } catch (e) { ko(e); } finally { URL.revokeObjectURL(u); } }; i.onerror = () => { URL.revokeObjectURL(u); ko(new Error("Imagen no válida")); }; i.src = u; });
+}
+async function agregarFotos(files) {
+  for (const f of files) {
+    if (rclFotos.length >= 4) { toast("Máximo 4 fotos.", true); break; }
+    try { toast("Procesando foto…"); rclFotos.push(await leerFoto(f)); } catch (e) { toast("No se pudo leer la foto: " + (e?.message || e), true); }
+  }
+  renderRclFotos();
+}
+function renderRclFotos() {
+  $("#rFotos").innerHTML = rclFotos.map((f, i) => `<div class="ft"><img src="${f}" alt="Foto ${i + 1}" data-ver="form:${i}"><button class="x" type="button" data-rfdel="${i}" aria-label="Quitar">✕</button></div>`).join("");
+}
+async function abrirFotoVivo() {
+  if (rclFotos.length >= 4) return toast("Máximo 4 fotos.", true);
+  $("#mFoto").hidden = false; $("#fotoMsg").textContent = "Abriendo cámara…";
+  try {
+    fotoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 } }, audio: false });
+    const v = $("#fotoVideo"); v.srcObject = fotoStream; await v.play(); $("#fotoMsg").textContent = "Encuadra el daño y pulsa Capturar.";
+  } catch { $("#fotoMsg").textContent = "No se pudo abrir la cámara en vivo. Usa Tomar foto."; }
+}
+function cerrarFotoVivo() { fotoStream?.getTracks().forEach(t => t.stop()); fotoStream = null; $("#mFoto").hidden = true; }
+function opcionesActas() {
+  const actas = store.actas.slice().sort((a, b) => (b.fecha || "").localeCompare(a.fecha || ""));
+  $("#rActa").innerHTML = `<option value="">—</option>` + actas.map(a => `<option value="${esc(a.id)}">${esc(a.folio)} · ${esc(tr(TIPOS[a.tipo]?.nombre || ""))} · ${esc(a.recibe?.nombre || "")}</option>`).join("");
+}
+function opcionesActivos(sel) {
+  const a = store.actas.find(x => x.id === $("#rActa").value);
+  $("#rActivo").innerHTML = !a ? `<option value="">—</option>` : (a.activos || []).map((it, i) => `<option value="${i}">${esc([it.codigo, it.descripcion, it.serie && "S/N " + it.serie].filter(Boolean).join(" · "))}</option>`).join("") + `<option value="todo">Todo el acta / varios activos</option>`;
+  if (sel != null) $("#rActivo").value = String(sel);
+}
+function abrirFormRcl(actaId, idx) {
+  if (!store.actas.length) { toast("No tienes actas disponibles. Solo puedes reportar activos de actas que puedes ver.", true); return; }
+  opcionesActas(); if (actaId) $("#rActa").value = actaId; opcionesActivos(idx);
+  if (!$("#rFecha").value) $("#rFecha").value = localISO();
+  $("#rclForm").hidden = false; $("#btnRNuevo").hidden = true;
+  $("#rclForm").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function cerrarFormRcl(limpiar) {
+  $("#rclForm").hidden = true; $("#btnRNuevo").hidden = false;
+  if (limpiar) { $("#rDesc").value = ""; $("#rFecha").value = ""; rclFotos = []; renderRclFotos(); }
+}
+async function enviarReclamo() {
+  $$("#rclForm .f").forEach(f => f.classList.remove("err"));
+  const a = store.actas.find(x => x.id === $("#rActa").value), err = (id, m) => { $("#" + id).closest(".f").classList.add("err"); toast(m, true); $("#" + id).focus(); };
+  if (!a) return err("rActa", "Elige el acta.");
+  const iv = $("#rActivo").value; if (iv === "") return err("rActivo", "Elige el activo afectado.");
+  if (!$("#rDesc").value.trim()) return err("rDesc", "Describe qué pasó.");
+  if (!rclFotos.length) { $("#rFotos").closest(".f").classList.add("err"); return toast("Agrega al menos una foto del activo.", true); }
+  const it = iv === "todo" ? null : (a.activos || [])[+iv];
+  const r = { id: uid(), estado: "abierto", actaId: a.id, actaFolio: a.folio, creadoEn: new Date().toISOString(), incidenteEn: $("#rFecha").value ? new Date($("#rFecha").value).toISOString() : new Date().toISOString(),
+    tipoProblema: $("#rTipo").value, descripcion: $("#rDesc").value.trim(),
+    activo: it ? { codigo: it.codigo || "", descripcion: it.descripcion || "", serie: it.serie || "", indice: +iv } : { descripcion: tr("Todo el acta / varios activos") },
+    reportadoPor: { nombre: store.perfil?.nombre || "", correo: (store.user?.email || "").toLowerCase() } };
+  const b = $("#btnREnviar"); b.disabled = true; b.textContent = "Enviando…";
+  try { await rcl.crear(r, rclFotos.slice()); cerrarFormRcl(true); toast(`Reclamo ${r.folio} enviado.`); }
+  catch (e) { toast("No se pudo enviar el reclamo: " + (e?.message || e), true); }
+  finally { b.disabled = false; b.textContent = "Enviar reclamo"; }
+}
+function rclCard(r, admin) {
+  const mio = (r.reportadoPor?.correo || "") === (store.user?.email || "").toLowerCase();
+  const acts = [];
+  if (admin && (r.estado === "abierto" || r.estado === "revision")) {
+    if (r.estado === "abierto") acts.push(`<button class="btn sm" data-ract="revision" data-rid="${esc(r.id)}">Pasar a revisión</button>`);
+    acts.push(`<button class="btn sm primary" data-ract="resolver" data-rid="${esc(r.id)}">Resolver</button>`);
+    acts.push(`<button class="btn sm danger" data-ract="rechazar" data-rid="${esc(r.id)}">Rechazar</button>`);
+  }
+  if (r.estado === "abierto" && (mio || (admin && store.mode !== "supa"))) acts.push(`<button class="btn sm ghost" data-ract="cancelar" data-rid="${esc(r.id)}">Cancelar reclamo</button>`);
+  const fotos = r.fotos || rcl.fotosCache[r.id];
+  const fotosHtml = rclVerFotos.has(r.id) && fotos ? `<div class="fotos">${fotos.map((f, i) => `<button class="ft" type="button" data-ver="${esc(r.id)}:${i}"><img src="${f}" alt="Foto ${i + 1}" loading="lazy"></button>`).join("")}</div>`
+    : (r.nFotos || fotos?.length) ? `<div><button class="btn sm" data-ract="fotos" data-rid="${esc(r.id)}">Ver fotos (${r.nFotos || fotos.length})</button></div>` : "";
+  const resp = rclResp?.id === r.id ? `<div class="confirm"><div class="f"><label for="rResp">Respuesta (opcional)</label><textarea id="rResp"></textarea></div>
+    <div class="row"><button class="btn ${rclResp.accion === "rechazar" ? "danger solid" : "primary"} sm" data-ract="${rclResp.accion}Ok" data-rid="${esc(r.id)}">Confirmar</button><button class="btn sm" data-ract="volver" data-rid="${esc(r.id)}">Volver</button></div></div>` : "";
+  return `<div class="pcard">
+    <div class="ph"><b class="mono">${esc(r.folio)}</b><span class="pill ${esc(r.estado)}">${esc(RCL_ESTADOS[r.estado] || r.estado)}</span><span class="when">${esc(fmtFecha(r.incidenteEn || r.creadoEn))}</span></div>
+    <div><button class="linkbtn" data-open="${esc(r.actaId)}">Acta ${esc(r.actaFolio || "")} · ${esc([r.activo?.codigo, r.activo?.descripcion].filter(Boolean).join(" · "))}</button></div>
+    <div class="hint" style="margin:0">Reportado por ${esc(r.reportadoPor?.nombre || r.reportadoPor?.correo || "—")}</div>
+    <div class="kv" style="margin:0"><div><span>Tipo de problema</span><b>${esc(r.tipoProblema || "—")}</b></div><div><span>¿Qué pasó?</span><b style="font-weight:500;white-space:pre-wrap">${esc(r.descripcion || "—")}</b></div></div>
+    ${fotosHtml}
+    ${r.respuesta ? `<div class="hint" style="margin:0;color:var(--ink)">Respuesta: ${esc(r.respuesta)}</div>` : ""}
+    ${acts.length ? `<div class="acts">${acts.join("")}</div>` : ""}${resp}
+  </div>`;
+}
+function renderRcl() {
+  renderRclCount();
+  const admin = esAdminRcl(), el = $("#rclList"), q = $("#rq").value.trim().toLowerCase(), fe = $("#rfEstado").value;
+  if (rcl.sinTabla) { el.innerHTML = `<div class="empty">Falta activar los reclamos en la base de datos (archivo 6 de Supabase).</div>`; return; }
+  const rows = rcl.lista.filter(r => (!fe || r.estado === fe) && (!q || [r.folio, r.actaFolio, r.activo?.codigo, r.activo?.descripcion, r.descripcion, r.reportadoPor?.nombre, r.tipoProblema].join(" ").toLowerCase().includes(q)))
+    .sort((a, b) => ((a.estado === "abierto" || a.estado === "revision") ? 0 : 1) - ((b.estado === "abierto" || b.estado === "revision") ? 0 : 1) || (b.creadoEn || "").localeCompare(a.creadoEn || ""));
+  if (!rcl.lista.length) { el.innerHTML = `<div class="sec zero"><h3>Aún no hay reclamos</h3><p class="hint">Cuando alguien reporte un activo dañado, el reclamo aparecerá aquí.</p></div>`; return; }
+  if (!rows.length) { el.innerHTML = `<div class="empty">Ninguna reclamo coincide con la búsqueda.</div>`; return; }
+  el.innerHTML = rows.map(r => rclCard(r, admin)).join("");
+}
+function rclSeccionActa(a) {
+  const rs = rcl.lista.filter(r => r.actaId === a.id);
+  return `<section class="sec" id="rclActa"><div class="sec-h"><h2 style="font-size:16px">Reclamos de esta acta (${rs.length})</h2><button class="btn sm" data-rcl-acta="${esc(a.id)}">Reportar daño</button></div>
+    ${rs.length ? `<div class="list">${rs.map(r => rclCard(r, esAdminRcl())).join("")}</div>` : ""}</section>`;
+}
+function rerenderRcl() { if (view === "reclamos") renderRcl(); if (view === "detalle") renderDetail(); }
+document.addEventListener("click", async e => {
+  const ver = e.target.closest("[data-ver]");
+  if (ver) { const [id, i] = ver.dataset.ver.split(":"); const src = id === "form" ? rclFotos[+i] : (rcl.lista.find(x => x.id === id)?.fotos || rcl.fotosCache[id] || [])[+i]; if (src) { $("#imgFull").src = src; $("#mImg").hidden = false; } return; }
+  const fd = e.target.closest("[data-rfdel]"); if (fd) { rclFotos.splice(+fd.dataset.rfdel, 1); renderRclFotos(); return; }
+  const ra = e.target.closest("[data-rcl-acta]"); if (ra) { setView("reclamos"); abrirFormRcl(ra.dataset.rclActa); return; }
+  const b = e.target.closest("[data-ract]"); if (!b) return;
+  const id = b.dataset.rid, r = rcl.lista.find(x => x.id === id), a = b.dataset.ract; if (!r) return;
+  if (a === "fotos") { b.disabled = true; try { await rcl.fotos(r); rclVerFotos.add(id); rerenderRcl(); } catch (x) { toast("No se pudo actualizar el reclamo: " + (x?.message || x), true); b.disabled = false; } return; }
+  if (a === "resolver" || a === "rechazar") { rclResp = { id, accion: a }; rerenderRcl(); setTimeout(() => $("#rResp")?.focus(), 30); return; }
+  if (a === "volver") { rclResp = null; rerenderRcl(); return; }
+  b.disabled = true;
+  const quien = store.perfil?.nombre || store.user?.email || "";
+  try {
+    if (a === "revision") await rcl.cambiar(id, { estado: "revision", revisadoPor: quien, revisadoEn: new Date().toISOString() });
+    if (a === "resolverOk" || a === "rechazarOk") { await rcl.cambiar(id, { estado: a === "resolverOk" ? "resuelto" : "rechazado", respuesta: $("#rResp")?.value.trim() || "", cerradoPor: quien, cerradoEn: new Date().toISOString() }); rclResp = null; }
+    if (a === "cancelar") { await rcl.borrar(id); toast("Reclamo cancelado."); return; }
+    toast("Reclamo actualizado.");
+  } catch (x) { toast("No se pudo actualizar el reclamo: " + (x?.message || x), true); b.disabled = false; }
+});
+$("#btnRNuevo").addEventListener("click", () => abrirFormRcl());
+$("#btnRCancelar").addEventListener("click", () => cerrarFormRcl(false));
+$("#rActa").addEventListener("change", () => opcionesActivos());
+$("#btnRFoto").addEventListener("click", () => { if (rclFotos.length >= 4) return toast("Máximo 4 fotos.", true); $("#rFotoCam").click(); });
+$("#btnRGal").addEventListener("click", () => { if (rclFotos.length >= 4) return toast("Máximo 4 fotos.", true); $("#rFotoGal").click(); });
+$("#rFotoCam").addEventListener("change", e => { agregarFotos([...e.target.files]); e.target.value = ""; });
+$("#rFotoGal").addEventListener("change", e => { agregarFotos([...e.target.files]); e.target.value = ""; });
+$("#btnRVivo").addEventListener("click", abrirFotoVivo);
+$("#btnCerrarFoto").addEventListener("click", cerrarFotoVivo);
+$("#btnCapturar").addEventListener("click", () => { const v = $("#fotoVideo"); if (!v.videoWidth) return; rclFotos.push(fotoDesde(v, v.videoWidth, v.videoHeight)); renderRclFotos(); cerrarFotoVivo(); });
+$("#btnCerrarImg").addEventListener("click", () => { $("#mImg").hidden = true; });
+$("#mImg").addEventListener("click", e => { if (e.target.id === "mImg") $("#mImg").hidden = true; });
+$("#btnREnviar").addEventListener("click", enviarReclamo);
+$("#rq").addEventListener("input", renderRcl); $("#rfEstado").addEventListener("change", renderRcl);
+
 /* ---------------- Guía de uso ---------------- */
 const GUIA = [
   { id: "registro", supa: true, who: ["Todos", "Everyone"], t: ["Crear tu cuenta", "Create your account"], pasos: [
@@ -1741,6 +2006,14 @@ const GUIA = [
     ["El administrador la <b>aprueba</b> o la <b>rechaza</b>. Cuando te entrega los activos, la petición pasa a <b>Atendida</b> y muestra el acta de entrega.", "The administrator <b>approves</b> or <b>rejects</b> it. When the assets are handed over, the request becomes <b>Fulfilled</b> and shows the handover record."],
     ["Administrador: en una petición, pulsa <b>Crear acta de entrega</b>. El acta se llena sola con la persona y los activos pedidos: completa códigos y series, firma y guarda.", "Administrator: on a request, tap <b>Create handover record</b>. The record is pre-filled with the person and requested assets: complete codes and serials, sign and save.", "admin"],
   ], tip: ["Mientras la petición esté Pendiente puedes cancelarla.", "While the request is Pending you can cancel it."] },
+  { id: "reclamo", who: ["Todos", "Everyone"], t: ["Reportar un daño", "Report damage"], pasos: [
+    ["Entra a la pestaña <b>Reclamos</b> y pulsa <b>+ Nuevo reclamo</b>. También puedes hacerlo desde un acta, con el botón <b>Reportar daño</b>.", "Go to the <b>Claims</b> tab and tap <b>+ New claim</b>. You can also do it from a record with the <b>Report damage</b> button."],
+    ["Elige el <b>acta</b> y el <b>activo afectado</b>, el tipo de problema y cuándo ocurrió.", "Choose the <b>record</b> and the <b>affected asset</b>, the problem type and when it happened."],
+    ["Describe qué pasó.", "Describe what happened."],
+    ["Pulsa <b>Tomar foto</b> (o <b>Cámara en vivo</b>) y fotografía el daño en ese momento. Puedes agregar hasta 4 fotos; cada una lleva la fecha y la hora.", "Tap <b>Take photo</b> (or <b>Live camera</b>) and photograph the damage right then. You can add up to 4 photos; each is stamped with the date and time."],
+    ["Pulsa <b>Enviar reclamo</b>. Recibe un folio <b>RCL-…</b> y queda <b>Abierto</b>. El reclamo aparece también dentro del acta.", "Tap <b>Submit claim</b>. It gets an <b>RCL-…</b> number and shows as <b>Open</b>. The claim also appears inside the record."],
+    ["Administrador: revisa el reclamo y sus fotos, y márcalo <b>En revisión</b>, <b>Resuelto</b> o <b>Rechazado</b> con una respuesta.", "Administrator: review the claim and its photos, and mark it <b>Under review</b>, <b>Resolved</b> or <b>Rejected</b> with a reply.", "admin"],
+  ], tip: ["Toma la foto con buena luz y de cerca, para que el daño se vea claro.", "Take the photo close up and in good light so the damage is clearly visible."] },
   { id: "firmar", supa: true, who: ["Quien recibe", "Recipient"], t: ["Firmar un acta como conforme", "Sign a record as received"], pasos: [
     ["Inicia sesión con tu correo y contraseña.", "Sign in with your email and password."],
     ["En <b>Historial</b> verás tus actas. Las que dicen <b>“Pendiente de firma”</b> esperan tu firma.", "In <b>History</b> you will see your records. Those marked <b>“Pending signature”</b> are waiting for you."],
@@ -1787,7 +2060,7 @@ if (draft) loadDraft(draft);
 let _pendEdit = editando?.pendiente ? editando.id : null; editando = null;
 if (!$("#fecha").value) $("#fecha").value = localISO();
 const h = (location.hash || "").slice(1);
-setView(h === "historial" ? "historial" : h === "peticiones" ? "peticiones" : "nueva");
+setView(h === "historial" ? "historial" : h === "peticiones" ? "peticiones" : h === "reclamos" ? "reclamos" : "nueva");
 refreshForm();
 store.listeners.push(() => {
   if (_pendEdit && !editando) { const a = store.actas.find(x => x.id === _pendEdit); if (a && puedeEditar()) { _pendEdit = null; setEditando(a); refreshForm(); } }
