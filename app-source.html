@@ -559,7 +559,8 @@ const D = {
   "Eliminar acta": "Delete record", "Sí, eliminar": "Yes, delete", "Cancelar": "Cancel", "Esta acta ya no existe.": "This record no longer exists.", "Volver al historial": "Back to history",
   "Código": "Code", "Marca / Modelo": "Brand / Model", "Serie": "Serial", "Cant.": "Qty",
   "Se borrará del historial para todos. Descarga antes el PDF si lo necesitas. Esta acción no se puede deshacer.": "It will be removed from the history for everyone. Download the PDF first if you need it. This cannot be undone.",
-  "Último movimiento:": "Last movement:", "recibió": "received by",
+  "Último movimiento:": "Last movement:", "Descripción cargada del catálogo:": "Description loaded from catalog:",
+  "Código nuevo: escribe la descripción y quedará guardada para la próxima vez que se escanee.": "New code: type the description and it will be saved for the next time it is scanned.", "recibió": "received by",
   // Avisos
   "No se pudo cargar el historial. Revisa tu conexión.": "Could not load the history. Check your connection.",
   "Activo actualizado.": "Asset updated.", "Escribe la descripción del activo.": "Enter the asset description.",
@@ -754,7 +755,7 @@ const store = {
       await this.supaInit();
     } else {
       this.mode = "local";
-      this.actas = lsGet("actas-local", []); pet.load(); rcl.load();
+      this.actas = lsGet("actas-local", []); pet.load(); rcl.load(); cat.load();
       setSync("Guardado en este dispositivo", false);
       this.emit();
     }
@@ -764,7 +765,7 @@ const store = {
     const c = window.ACTAS_SUPABASE; this.mode = "supa";
     this.sb = window.supabase.createClient(c.url, c.key, { auth: { persistSession: true, autoRefreshToken: true } });
     this.sb.auth.onAuthStateChange((ev, session) => {
-      if (ev === "SIGNED_OUT") { this.user = null; this.perfil = null; this.esAdmin = false; pet.lista = []; pet.unwatch(); rcl.lista = []; rcl.unwatch(); aplicarRol(); this.usuarios = []; this.actas = []; $("#tabUsers").hidden = true; try { if (this.chanP) this.sb.removeChannel(this.chanP); } catch {} this.chanP = null; hidePending(); if (view === "usuarios") setView("nueva"); this.emit(); this.stopRealtime(); showLogin(); }
+      if (ev === "SIGNED_OUT") { this.user = null; this.perfil = null; this.esAdmin = false; pet.lista = []; pet.unwatch(); rcl.lista = []; rcl.unwatch(); aplicarRol(); this.usuarios = []; this.actas = []; cat.map = new Map(); $("#tabUsers").hidden = true; try { if (this.chanP) this.sb.removeChannel(this.chanP); } catch {} this.chanP = null; hidePending(); if (view === "usuarios") setView("nueva"); this.emit(); this.stopRealtime(); showLogin(); }
     });
     let session = null;
     try { session = (await this.sb.auth.getSession()).data.session; } catch {}
@@ -788,7 +789,7 @@ const store = {
     aplicarRol();
     if (this.esAdmin) this.loadUsers();
     await this.supaLoad();
-    pet.load(); pet.watch(); rcl.load(); rcl.watch();
+    pet.load(); pet.watch(); rcl.load(); rcl.watch(); cat.load().catch(() => {});
     this.stopRealtime();
     try {
       this.chan = this.sb.channel("actas-cambios")
@@ -990,7 +991,49 @@ function renderAssets() {
     </div>`).join("");
 }
 
-/* ---------------- Catálogo derivado del historial ---------------- */
+/* ---------------- Catálogo de códigos (código -> descripción) ---------------- */
+const cat = {
+  map: new Map(), off: false,
+  key: c => (c || "").trim().toLowerCase(),
+  get(c) { return this.map.get(this.key(c)) || null; },
+  put(r) { if (r && r.codigo && r.descripcion) this.map.set(this.key(r.codigo), { codigo: r.codigo, descripcion: r.descripcion, marca: r.marca || "", modelo: r.modelo || "", serie: r.serie || "" }); },
+  async load() {
+    this.map = new Map();
+    if (store.mode === "supa") {
+      if (!store.user) return;
+      const { data, error } = await store.sb.from("catalogo").select("codigo,descripcion,marca,modelo,serie").limit(20000);
+      if (error) { this.off = true; return; } // tabla aún no creada (falta el SQL 7): se usa solo el historial
+      this.off = false; (data || []).forEach(r => this.put(r));
+    } else (lsGet("actas-catalogo", []) || []).forEach(r => this.put(r));
+  },
+  // Consulta un código en la base (por si otro usuario lo registró después de abrir la app)
+  async refresh(c) {
+    if (store.mode !== "supa" || this.off || !store.user || !c) return false;
+    const { data, error } = await store.sb.from("catalogo").select("codigo,descripcion,marca,modelo,serie").eq("clave", this.key(c)).maybeSingle();
+    if (error || !data) return false;
+    const antes = JSON.stringify(this.get(c)); this.put(data); return antes !== JSON.stringify(this.get(c));
+  },
+  // Guarda/actualiza en el catálogo los activos con código de un acta
+  async guardar(items) {
+    const filas = []; const vistos = new Set();
+    for (const it of items || []) {
+      const codigo = (it.codigo || "").trim(), descripcion = (it.descripcion || "").trim(); const k = this.key(codigo);
+      if (!codigo || !descripcion || vistos.has(k)) continue; vistos.add(k);
+      const f = { clave: k, codigo, descripcion, marca: (it.marca || "").trim(), modelo: (it.modelo || "").trim(), serie: (it.serie || "").trim() };
+      const prev = this.get(codigo);
+      if (prev && ["descripcion", "marca", "modelo", "serie"].every(x => (prev[x] || "") === f[x])) continue;
+      filas.push(f);
+    }
+    if (!filas.length) return;
+    if (store.mode === "supa") {
+      if (this.off || !store.user) return;
+      const { error } = await store.sb.from("catalogo").upsert(filas, { onConflict: "clave" });
+      if (error) { console.warn("catálogo:", error.message); return; }
+    }
+    filas.forEach(f => this.put(f));
+    if (store.mode !== "supa") lsSet("actas-catalogo", [...this.map.values()]);
+  },
+};
 function lastMovement(codigo) {
   if (!codigo) return null; const c = codigo.trim().toLowerCase(); let best = null;
   for (const a of store.actas) for (const it of (a.activos || [])) {
@@ -998,22 +1041,39 @@ function lastMovement(codigo) {
   }
   return best;
 }
+// Valores que la app llenó sola: si se escanea otro código, se reemplazan; lo que el usuario escribió no se toca
+let autoVals = {};
+const AUTO_CAMPOS = [["aDesc", "descripcion"], ["aMarca", "marca"], ["aModelo", "modelo"], ["aSerie", "serie"]];
 function showLookup(codigo, fill) {
-  const box = $("#lookup"); const m = lastMovement(codigo);
-  if (!m) { box.hidden = true; return; }
-  const a = m.acta;
-  box.innerHTML = `${esc(tr("Último movimiento:"))} <b>${esc(a.folio)}</b> · ${esc(tr(TIPOS[a.tipo]?.nombre || a.tipo))} · ${esc(fmtFecha(a.fecha))} · ${esc(tr("recibió"))} ${esc(a.recibe?.nombre || "—")}${a.destino ? " · " + esc(a.destino) : ""}`;
-  box.hidden = false;
+  const box = $("#lookup"); codigo = (codigo || "").trim();
+  const m = codigo ? lastMovement(codigo) : null; const ce = codigo ? cat.get(codigo) : null;
+  const fuente = ce || m?.item || null;
   if (fill) {
-    const it = m.item;
-    [["aDesc", "descripcion"], ["aMarca", "marca"], ["aModelo", "modelo"], ["aSerie", "serie"]].forEach(([id, k]) => { if (!$("#" + id).value && it[k]) $("#" + id).value = it[k]; });
-    if (it.estado) $("#aEstado").value = it.estado;
+    AUTO_CAMPOS.forEach(([id, k]) => {
+      const el = $("#" + id); const libre = !el.value || (autoVals[id] !== undefined && el.value === autoVals[id]);
+      if (!libre) return;
+      const val = fuente?.[k] || "";
+      el.value = val; if (val) autoVals[id] = val; else delete autoVals[id];
+      if (val) el.closest(".f")?.classList.remove("err");
+    });
+    if (m?.item?.estado) $("#aEstado").value = m.item.estado;
   }
+  if (!codigo) { box.hidden = true; return; }
+  const partes = [];
+  if (fuente) partes.push(`<span>✓ ${esc(tr("Descripción cargada del catálogo:"))} <b style="font-family:inherit;font-weight:600">${esc(fuente.descripcion)}</b></span>`);
+  if (m) { const a = m.acta; partes.push(`${esc(tr("Último movimiento:"))} <b>${esc(a.folio)}</b> · ${esc(tr(TIPOS[a.tipo]?.nombre || a.tipo))} · ${esc(fmtFecha(a.fecha))} · ${esc(tr("recibió"))} ${esc(a.recibe?.nombre || "—")}${a.destino ? " · " + esc(a.destino) : ""}`); }
+  if (!fuente && !cat.off && store.mode !== "db") partes.push(esc(tr("Código nuevo: escribe la descripción y quedará guardada para la próxima vez que se escanee.")));
+  box.innerHTML = partes.join("<br>"); box.hidden = !partes.length;
+}
+// Busca el código (primero en memoria, luego en la base) y llena los campos
+async function buscarCodigo(code) {
+  showLookup(code, true);
+  try { if (await cat.refresh(code) && $("#aCodigo").value.trim().toLowerCase() === code.trim().toLowerCase()) showLookup(code, true); } catch {}
 }
 
 function clearAssetInputs() {
   ["aCodigo", "aDesc", "aMarca", "aModelo", "aSerie", "aObs"].forEach(id => $("#" + id).value = "");
-  $("#aEstado").value = "Bueno"; $("#aCant").value = 1; $("#lookup").hidden = true;
+  $("#aEstado").value = "Bueno"; $("#aCant").value = 1; $("#lookup").hidden = true; autoVals = {};
   editIdx = -1; $("#addLbl").textContent = "Agregar activo"; $("#btnCancelEdit").hidden = true;
   $$(".capture .f").forEach(f => f.classList.remove("err"));
 }
@@ -1072,9 +1132,9 @@ async function decodeFile(file) {
     return null;
   } finally { URL.revokeObjectURL(url); }
 }
-function codeFound(code) {
+async function codeFound(code) {
   $("#aCodigo").value = code; navigator.vibrate?.(60);
-  showLookup(code, true);
+  await buscarCodigo(code);
   toast("Código leído: " + code);
   $("#aDesc").value ? $("#aObs").focus() : $("#aDesc").focus();
   if (assets.some(x => x.codigo && x.codigo.toLowerCase() === code.toLowerCase())) toast(`El código ${code} ya está en esta acta.`, true);
@@ -1164,6 +1224,7 @@ async function guardar() {
       await store.save(acta); toast("Ese folio ya existía; se asignó el siguiente número.");
     }
     if (store.mode === "db" && !store.actas.some(a => a.id === acta.id)) store.actas.push(acta);
+    cat.guardar(acta.activos).catch(() => {});
     if (petAtiende) { try { await pet.cambiar(petAtiende.id, { estado: "atendida", actaId: acta.id, actaFolio: acta.folio, atendidaEn: new Date().toISOString(), atendidaPor: store.perfil?.nombre || store.user?.email || "" }); } catch (e) { toast("No se pudo actualizar la petición: " + (e?.message || e), true); } }
     resetForm();
     if (ed) { toast(`Acta ${acta.folio} corregida.`); if (avisoFirma) setTimeout(() => toast("Esta acta ya fue firmada por quien recibe. Como cambiaste los activos, su firma se quitó y tendrá que volver a firmar.", true), 400); }
@@ -1516,8 +1577,8 @@ $$("input[name=tipo]").forEach(r => r.addEventListener("change", () => { saveDra
 FIELDS.forEach(f => $("#" + f).addEventListener("input", () => { $("#" + f).closest(".f")?.classList.remove("err"); saveDraft(); if (["fecha", "eNombre", "eDoc", "rNombre", "rDoc"].includes(f)) refreshForm(); }));
 $("#eNombre").addEventListener("change", () => { autoPersona("e"); saveDraft(); refreshForm(); });
 $("#rNombre").addEventListener("change", () => { autoPersona("r"); saveDraft(); refreshForm(); });
-$("#aCodigo").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); showLookup(e.target.value.trim(), true); $("#aDesc").value ? addAsset() : $("#aDesc").focus(); } });
-$("#aCodigo").addEventListener("change", e => showLookup(e.target.value.trim(), true));
+$("#aCodigo").addEventListener("keydown", async e => { if (e.key === "Enter") { e.preventDefault(); await buscarCodigo(e.target.value.trim()); $("#aDesc").value ? addAsset() : $("#aDesc").focus(); } });
+$("#aCodigo").addEventListener("change", e => buscarCodigo(e.target.value.trim()));
 ["aDesc", "aMarca", "aModelo", "aSerie", "aCant", "aObs"].forEach(id => $("#" + id).addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); addAsset(); } }));
 $("#aDesc").addEventListener("input", () => $("#aDesc").closest(".f").classList.remove("err"));
 $("#btnAddAsset").addEventListener("click", addAsset);
@@ -1990,6 +2051,7 @@ const GUIA = [
   { id: "llenar", who: ["Usuarios aprobados", "Approved users"], t: ["Llenar un acta", "Fill in a record"], pasos: [
     ["<b>Datos del acta:</b> elige el tipo (Entrega, Recepción, Devolución o Traslado), revisa la fecha y escribe sede, origen y destino. En un traslado el destino es obligatorio.", "<b>Record details:</b> choose the type (Handover, Receipt, Return or Transfer), check the date and enter site, origin and destination. Destination is required for transfers."],
     ["<b>Activos:</b> pulsa <b>Escanear</b> (toma una foto del código de barras) o <b>Cámara en vivo</b>, o escribe el código. Completa descripción, marca, modelo, serie, estado y cantidad, y pulsa <b>Agregar activo</b>. Repite por cada activo.", "<b>Assets:</b> tap <b>Scan</b> (take a photo of the barcode) or <b>Live camera</b>, or type the code. Fill in description, brand, model, serial, condition and quantity, then tap <b>Add asset</b>. Repeat for each asset."],
+    ["Si el código ya se registró antes, la <b>descripción, marca, modelo y serie se llenan solas</b> al escanearlo. Si es un código nuevo, escribe la descripción: al guardar el acta queda en el catálogo para la próxima vez.", "If the code was registered before, the <b>description, brand, model and serial fill in automatically</b> when scanned. For a new code, type the description: when the record is saved it goes into the catalog for next time."],
     ["En la lista de activos, el <b>lápiz</b> corrige un activo y la <b>X</b> lo quita.", "In the asset list, the <b>pencil</b> edits an asset and the <b>X</b> removes it."],
     ["<b>Personas:</b> escribe el nombre de quien entrega y de quien recibe (documento, cargo y área son opcionales).", "<b>People:</b> enter the names of who hands over and who receives (ID, position and area are optional)."],
     ["Si quien recibe firmará desde su propio celular, escribe su <b>“Correo de su cuenta en la app”</b>.", "If the recipient will sign from their own phone, enter their <b>“Email of their app account”</b>.", "supa"],
